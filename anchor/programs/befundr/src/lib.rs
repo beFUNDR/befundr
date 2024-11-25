@@ -54,8 +54,11 @@ pub mod befundr {
         instructions::create_unlock_request(ctx, amount_requested)
     }
 
-    pub fn claim_unlock_request(ctx: Context<ClaimUnlockRequest>) -> Result<()> {
-        instructions::claim_unlock_request(ctx)
+    pub fn claim_unlock_request(
+        ctx: Context<ClaimUnlockRequest>,
+        created_project_counter: u16,
+    ) -> Result<()> {
+        instructions::claim_unlock_request(ctx, created_project_counter)
     }
 
     pub fn create_transaction(ctx: Context<CreateTransaction>, selling_price: u64) -> Result<()> {

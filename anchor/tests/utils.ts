@@ -318,6 +318,42 @@ export const createUnlockRequest = async (
     return newUnlockRequestPubkey;
 }
 
+export const claimUnlockRequest = async (
+    projectPubkey: PublicKey,
+    userPubkey: PublicKey,
+    wallet: Keypair,
+    unlockRequestPubkey: PublicKey,
+    createdProjectCounter: number
+): Promise<void> => {
+    const [unlockRequestsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+            Buffer.from("project_unlock_requests"),
+            projectPubkey.toBuffer(),
+        ],
+        program.programId
+    );
+
+    // Get SPL Token transfer accounts
+    const fromAta = await getAssociatedTokenAddress(MINT_ADDRESS, projectPubkey, true);
+    const toAta = await getAssociatedTokenAddress(MINT_ADDRESS, wallet.publicKey, true);
+    const claimTx = await program.methods
+        .claimUnlockRequest(createdProjectCounter)
+        .accountsPartial({
+            user: userPubkey,
+            unlockRequests: unlockRequestsPubkey,
+            currentUnlockRequest: unlockRequestPubkey,
+            fromAta,
+            toAta,
+            project: projectPubkey,
+            owner: wallet.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID
+        })
+        .signers([wallet])
+        .rpc();
+
+    await confirmTransaction(program, claimTx);
+}
+
 export const createTransaction = async (
     projectPdaKey: PublicKey,
     contributionPubkey: PublicKey,

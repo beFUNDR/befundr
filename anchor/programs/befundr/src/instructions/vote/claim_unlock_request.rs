@@ -1,18 +1,20 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount};
+use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
 
 use crate::{
     errors::{AtaError, ClaimUnlockRequestError},
     state::{Project, UnlockRequest, UnlockRequests, User},
-    utils::transfer_spl_token,
 };
 
-pub fn claim_unlock_request(ctx: Context<ClaimUnlockRequest>) -> Result<()> {
+pub fn claim_unlock_request(
+    ctx: Context<ClaimUnlockRequest>,
+    created_project_counter: u16,
+) -> Result<()> {
     let now: i64 = Clock::get()?.unix_timestamp;
 
     let project = &mut ctx.accounts.project;
+    let user = &mut ctx.accounts.user;
     let current_unlock_request = &mut ctx.accounts.current_unlock_request;
-    let token_program = &ctx.accounts.token_program;
     let to_ata = &ctx.accounts.to_ata;
     let from_ata = &ctx.accounts.from_ata;
     let authority = &ctx.accounts.owner;
@@ -32,11 +34,26 @@ pub fn claim_unlock_request(ctx: Context<ClaimUnlockRequest>) -> Result<()> {
 
     current_unlock_request.is_claimed = true;
 
-    transfer_spl_token(
-        token_program,
-        from_ata,
-        to_ata,
-        authority,
+    let bump = &[ctx.bumps.project];
+    let binding = user.key();
+    let seeds: &[&[u8]] = &[
+        b"project",
+        binding.as_ref(),
+        &(created_project_counter).to_le_bytes(),
+        bump,
+    ];
+    let signer_seeds = &[&seeds[..]];
+
+    transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: from_ata.to_account_info(),
+                to: to_ata.to_account_info(),
+                authority: project.to_account_info(),
+            },
+            signer_seeds,
+        ),
         current_unlock_request.amount_requested,
     )?;
 
@@ -44,6 +61,7 @@ pub fn claim_unlock_request(ctx: Context<ClaimUnlockRequest>) -> Result<()> {
 }
 
 #[derive(Accounts)]
+
 pub struct ClaimUnlockRequest<'info> {
     #[account(has_one = owner)]
     pub user: Account<'info, User>,
@@ -67,7 +85,8 @@ pub struct ClaimUnlockRequest<'info> {
     #[account(mut)]
     pub to_ata: Account<'info, TokenAccount>,
 
-    #[account(has_one = user)]
+    #[account(has_one = user, seeds = [b"project", user.key().as_ref(), &(user.created_project_counter + 0).to_le_bytes()],
+    bump)]
     pub project: Account<'info, Project>,
 
     #[account(mut)]
