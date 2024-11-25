@@ -75,6 +75,14 @@ pub enum CreateUnlockRequestError {
 }
 
 #[error_code]
+pub enum ClaimUnlockRequestError {
+    #[msg("Unlock request already claimed")]
+    RequestAlreadyClaimed,
+    #[msg("Unlock request still ongoing")]
+    RequestNotClaimable,
+}
+
+#[error_code]
 pub enum MarketplaceError {
     #[msg("Signer is not the contribution owner")]
     NotContributionOwner,
