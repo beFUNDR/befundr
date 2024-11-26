@@ -69,7 +69,7 @@ pub struct ClaimUnlockRequest<'info> {
     #[account(has_one = owner)]
     pub user: Account<'info, User>,
 
-    #[account(has_one = project,
+    #[account(mut, has_one = project,
          seeds = [b"project_unlock_requests", project.key().as_ref()],
          bump)]
     pub unlock_requests: Account<'info, UnlockRequests>,
