@@ -3,7 +3,7 @@ use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
 
 use crate::{
     errors::{AtaError, ClaimUnlockRequestError},
-    state::{Project, UnlockRequest, UnlockRequests, User},
+    state::{unlock_requests, Project, UnlockRequest, UnlockRequests, User},
 };
 
 pub fn claim_unlock_request(
@@ -14,6 +14,7 @@ pub fn claim_unlock_request(
 
     let project = &mut ctx.accounts.project;
     let user = &mut ctx.accounts.user;
+    let unlock_requests = &mut ctx.accounts.unlock_requests;
     let current_unlock_request = &mut ctx.accounts.current_unlock_request;
     let to_ata = &ctx.accounts.to_ata;
     let from_ata = &ctx.accounts.from_ata;
@@ -43,6 +44,8 @@ pub fn claim_unlock_request(
         bump,
     ];
     let signer_seeds = &[&seeds[..]];
+
+    unlock_requests.unlocked_amount += current_unlock_request.amount_requested;
 
     transfer(
         CpiContext::new_with_signer(
