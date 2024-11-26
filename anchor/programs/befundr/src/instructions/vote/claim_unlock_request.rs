@@ -3,7 +3,7 @@ use anchor_spl::token::{transfer, Token, TokenAccount, Transfer};
 
 use crate::{
     errors::{AtaError, ClaimUnlockRequestError},
-    state::{unlock_requests, Project, UnlockRequest, UnlockRequests, User},
+    state::{Project, UnlockRequest, UnlockRequests, User},
 };
 
 pub fn claim_unlock_request(
@@ -64,12 +64,14 @@ pub fn claim_unlock_request(
 }
 
 #[derive(Accounts)]
-#[instruction(created_project_counter: u8)]
+#[instruction(created_project_counter: u16)]
 pub struct ClaimUnlockRequest<'info> {
     #[account(has_one = owner)]
     pub user: Account<'info, User>,
 
-    #[account(has_one = project, seeds = [b"project_unlock_requests", project.key().as_ref()], bump)]
+    #[account(has_one = project,
+         seeds = [b"project_unlock_requests", project.key().as_ref()],
+         bump)]
     pub unlock_requests: Account<'info, UnlockRequests>,
 
     #[account(mut,
@@ -85,7 +87,9 @@ pub struct ClaimUnlockRequest<'info> {
     #[account(mut)]
     pub to_ata: Account<'info, TokenAccount>,
 
-    #[account(has_one = user, seeds = [b"project", user.key().as_ref(), &(created_project_counter + 0).to_le_bytes()], bump)]
+    #[account(has_one = user,
+        seeds = [b"project", user.key().as_ref(), &(created_project_counter + 0).to_le_bytes()],
+        bump)]
     pub project: Account<'info, Project>,
 
     #[account(mut)]
