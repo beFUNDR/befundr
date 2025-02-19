@@ -159,6 +159,108 @@ export type Befundr = {
       "args": []
     },
     {
+      "name": "claimUnlockRequest",
+      "discriminator": [
+        136,
+        165,
+        18,
+        154,
+        15,
+        250,
+        197,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "unlockRequests",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116,
+                  95,
+                  117,
+                  110,
+                  108,
+                  111,
+                  99,
+                  107,
+                  95,
+                  114,
+                  101,
+                  113,
+                  117,
+                  101,
+                  115,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              }
+            ]
+          }
+        },
+        {
+          "name": "currentUnlockRequest",
+          "writable": true
+        },
+        {
+          "name": "fromAta",
+          "writable": true
+        },
+        {
+          "name": "toAta",
+          "writable": true
+        },
+        {
+          "name": "project",
+          "relations": [
+            "unlockRequests",
+            "currentUnlockRequest"
+          ]
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "user"
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "createdProjectCounter",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "completeTransaction",
       "discriminator": [
         34,
@@ -1324,6 +1426,10 @@ export type Befundr = {
                 "name": "unlockStatus"
               }
             }
+          },
+          {
+            "name": "isClaimed",
+            "type": "bool"
           },
           {
             "name": "votes",
