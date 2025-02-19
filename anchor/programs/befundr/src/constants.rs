@@ -1,10 +1,3 @@
-pub mod user {
-    pub const MAX_NAME_LENGTH: u64 = 64;
-    pub const MAX_AVATAR_URL_LENGTH: u64 = 256;
-    pub const MAX_BIO_LENGTH: u64 = 256;
-    pub const MAX_CITY_LENGTH: u64 = 100;
-}
-
 pub mod project {
     pub const MIN_SAFETY_DEPOSIT: u64 = 50_000_000;
     pub const MIN_PROJECT_GOAL_AMOUNT: u64 = 0; //USD
