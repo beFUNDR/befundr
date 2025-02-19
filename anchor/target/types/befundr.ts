@@ -28,11 +28,20 @@ export type Befundr = {
       "accounts": [
         {
           "name": "project",
-          "writable": true
+          "writable": true,
+          "relations": [
+            "projectContributions",
+            "reward"
+          ]
         },
         {
           "name": "projectContributions",
           "writable": true
+        },
+        {
+          "name": "reward",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "user"
@@ -102,12 +111,6 @@ export type Befundr = {
         {
           "name": "amount",
           "type": "u64"
-        },
-        {
-          "name": "rewardId",
-          "type": {
-            "option": "u64"
-          }
         }
       ]
     },
@@ -126,7 +129,10 @@ export type Befundr = {
       "accounts": [
         {
           "name": "project",
-          "writable": true
+          "writable": true,
+          "relations": [
+            "reward"
+          ]
         },
         {
           "name": "user"
@@ -134,6 +140,11 @@ export type Befundr = {
         {
           "name": "contribution",
           "writable": true
+        },
+        {
+          "name": "reward",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "signer",
@@ -307,6 +318,30 @@ export type Befundr = {
           "writable": true
         },
         {
+          "name": "rewards",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              }
+            ]
+          }
+        },
+        {
           "name": "projectSaleTransactions",
           "writable": true,
           "pda": {
@@ -450,15 +485,7 @@ export type Befundr = {
       ],
       "args": [
         {
-          "name": "name",
-          "type": "string"
-        },
-        {
-          "name": "imageUrl",
-          "type": "string"
-        },
-        {
-          "name": "description",
+          "name": "metadataUri",
           "type": "string"
         },
         {
@@ -470,30 +497,73 @@ export type Befundr = {
           "type": "i64"
         },
         {
-          "name": "rewards",
-          "type": {
-            "vec": {
-              "defined": {
-                "name": "reward"
-              }
-            }
-          }
-        },
-        {
           "name": "safetyDeposit",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "createReward",
+      "discriminator": [
+        55,
+        169,
+        173,
+        212,
+        11,
+        55,
+        47,
+        130
+      ],
+      "accounts": [
+        {
+          "name": "project",
+          "writable": true,
+          "relations": [
+            "rewards"
+          ]
         },
         {
-          "name": "xAccountUrl",
+          "name": "reward",
+          "writable": true
+        },
+        {
+          "name": "rewards",
+          "writable": true
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "user"
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "metadataUri",
           "type": "string"
         },
         {
-          "name": "category",
+          "name": "maxSupply",
           "type": {
-            "defined": {
-              "name": "projectCategory"
-            }
+            "option": "u16"
           }
+        },
+        {
+          "name": "price",
+          "type": "u64"
         }
       ]
     },
@@ -712,32 +782,7 @@ export type Befundr = {
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": [
-        {
-          "name": "name",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "avatarUrl",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "bio",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "city",
-          "type": {
-            "option": "string"
-          }
-        }
-      ]
+      "args": []
     },
     {
       "name": "deleteUser",
@@ -771,80 +816,6 @@ export type Befundr = {
         }
       ],
       "args": []
-    },
-    {
-      "name": "updateUser",
-      "discriminator": [
-        9,
-        2,
-        160,
-        169,
-        118,
-        12,
-        207,
-        84
-      ],
-      "accounts": [
-        {
-          "name": "user",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  117,
-                  115,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              }
-            ]
-          }
-        },
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true,
-          "relations": [
-            "user"
-          ]
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "name",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "avatarUrl",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "bio",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "city",
-          "type": {
-            "option": "string"
-          }
-        }
-      ]
     }
   ],
   "accounts": [
@@ -911,6 +882,32 @@ export type Befundr = {
         231,
         72,
         3
+      ]
+    },
+    {
+      "name": "reward",
+      "discriminator": [
+        174,
+        129,
+        42,
+        212,
+        190,
+        18,
+        45,
+        34
+      ]
+    },
+    {
+      "name": "rewards",
+      "discriminator": [
+        12,
+        223,
+        68,
+        101,
+        63,
+        33,
+        38,
+        101
       ]
     },
     {
@@ -1009,12 +1006,6 @@ export type Befundr = {
             "type": "u64"
           },
           {
-            "name": "rewardId",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
             "name": "creationTimestamp",
             "type": "i64"
           },
@@ -1030,6 +1021,12 @@ export type Befundr = {
               "defined": {
                 "name": "contributionStatus"
               }
+            }
+          },
+          {
+            "name": "reward",
+            "type": {
+              "option": "pubkey"
             }
           }
         ]
@@ -1113,28 +1110,8 @@ export type Befundr = {
             "type": "pubkey"
           },
           {
-            "name": "name",
+            "name": "metadataUri",
             "type": "string"
-          },
-          {
-            "name": "imageUrl",
-            "type": "string"
-          },
-          {
-            "name": "description",
-            "type": "string"
-          },
-          {
-            "name": "xAccountUrl",
-            "type": "string"
-          },
-          {
-            "name": "category",
-            "type": {
-              "defined": {
-                "name": "projectCategory"
-              }
-            }
           },
           {
             "name": "goalAmount",
@@ -1165,60 +1142,8 @@ export type Befundr = {
             "type": "u16"
           },
           {
-            "name": "rewards",
-            "type": {
-              "vec": {
-                "defined": {
-                  "name": "reward"
-                }
-              }
-            }
-          },
-          {
-            "name": "feed",
-            "type": "pubkey"
-          },
-          {
             "name": "safetyDeposit",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "projectCategory",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "technology"
-          },
-          {
-            "name": "art"
-          },
-          {
-            "name": "education"
-          },
-          {
-            "name": "health"
-          },
-          {
-            "name": "environment"
-          },
-          {
-            "name": "socialImpact"
-          },
-          {
-            "name": "entertainment"
-          },
-          {
-            "name": "science"
-          },
-          {
-            "name": "finance"
-          },
-          {
-            "name": "sports"
           }
         ]
       }
@@ -1291,11 +1216,11 @@ export type Befundr = {
         "kind": "struct",
         "fields": [
           {
-            "name": "name",
-            "type": "string"
+            "name": "project",
+            "type": "pubkey"
           },
           {
-            "name": "description",
+            "name": "metadataUri",
             "type": "string"
           },
           {
@@ -1311,6 +1236,22 @@ export type Befundr = {
           {
             "name": "currentSupply",
             "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rewards",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "rewardCounter",
+            "type": "u16"
           }
         ]
       }
@@ -1441,30 +1382,6 @@ export type Befundr = {
           {
             "name": "owner",
             "type": "pubkey"
-          },
-          {
-            "name": "name",
-            "type": {
-              "option": "string"
-            }
-          },
-          {
-            "name": "avatarUrl",
-            "type": {
-              "option": "string"
-            }
-          },
-          {
-            "name": "bio",
-            "type": {
-              "option": "string"
-            }
-          },
-          {
-            "name": "city",
-            "type": {
-              "option": "string"
-            }
           },
           {
             "name": "createdProjectCounter",

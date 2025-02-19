@@ -53,12 +53,7 @@ export const createUser = async (userData: User, wallet: Keypair): Promise<Publi
 
     // Call the createUser method
     const createUserTx = await program.methods
-        .createUser(
-            userData.name ?? null,
-            userData.avatar_url ?? null,
-            userData.bio ?? null,
-            userData.city ?? null,
-        )
+        .createUser()
         .accountsPartial({
             signer: wallet.publicKey,
             user: userPdaPublicKey,
