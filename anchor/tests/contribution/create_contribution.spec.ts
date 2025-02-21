@@ -1,5 +1,5 @@
 import { program, PROGRAM_CONNECTION } from "../config";
-import { createContribution, createProject, createUser, createUserWalletWithSol } from "../utils";
+import { createContribution, createProject, createReward, createUser, createUserWalletWithSol } from "../utils";
 import { projectData1 } from "../project/project_dataset";
 import { userData1, userData2, userData3 } from "../user/user_dataset";
 import { BN } from "@coral-xyz/anchor";
@@ -14,10 +14,11 @@ import {
     INITIAL_USER_ATA_BALANCE,
     getAtaBalance,
 } from "../token/token_config";
+import { reward1 } from "../reward/reward_dataset";
 
 describe('createContribution', () => {
 
-    let creatorWallet: Keypair, creatorWalletAta: Account, creatorUserPdaKey: PublicKey, 
+    let creatorWallet: Keypair, creatorWalletAta: Account, creatorUserPdaKey: PublicKey,
         userWallet: Keypair, userWalletAta: Account, userPdaKey: PublicKey;
 
     beforeEach(async () => {
@@ -46,10 +47,11 @@ describe('createContribution', () => {
 
     it("should successfully create a contribution with reward 1", async () => {
 
-        const INITIAL_PAID_AMOUNT = 5;
+        const INITIAL_PAID_AMOUNT = 100;
 
         // Prepare Project context
         const { projectPdaKey, projectAtaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet)
+        const rewardPdaKey = await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
         const projectAtaBalanceBefore = await getAtaBalance(projectAtaKey);
 
@@ -94,7 +96,7 @@ describe('createContribution', () => {
         expect(contributionPda.amount.toString()).toEqual(
             contributionAmount.toString()
         );
-        expect(contributionPda.rewardId.toNumber()).toEqual(0);
+        expect((contributionPda.reward || "").toString()).toEqual(rewardPdaKey.toString());
         expect(contributionPda.creationTimestamp.toNumber()).toBeGreaterThan(0);
         expect(contributionPda.isClaimed).toBeFalsy();
         expect(new Enum(contributionPda.status).enum).toBe(
@@ -118,6 +120,7 @@ describe('createContribution', () => {
 
         // Prepare Project context
         const { projectPdaKey, projectAtaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet)
+        const rewardPdaKey = await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
         const projectContributionCounter = projectPda.contributionCounter;
 
@@ -148,12 +151,13 @@ describe('createContribution', () => {
     });
 
     it('should fail if the contribution amount is negative or equal to 0', async () => {
-        
+
         const INITIAL_PAID_AMOUNT = 0;
         const expectedErrorMessage = new RegExp('Contribution amount is insufficient for the selected reward.');
 
         // Prepare Project context
         const { projectPdaKey, projectAtaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet)
+        const rewardPdaKey = await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
 
         const projectContributionCounter = projectPda.contributionCounter;
@@ -172,38 +176,13 @@ describe('createContribution', () => {
         ).rejects.toThrow(expectedErrorMessage);
     });
 
-    it('should fail if the reward does not exist in the project rewards list', async () => {
-        const INITIAL_PAID_AMOUNT = 5;
-        const SELECTED_REWARD = 4;
-        const expectedErrorMessage = new RegExp('Reward does not exist.');
-
-        // Prepare Project context
-        const { projectPdaKey, projectAtaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet)
-        const projectPda = await program.account.project.fetch(projectPdaKey);
-
-        const projectContributionCounter = projectPda.contributionCounter;
-
-        // Create a contribution
-        const contributionAmount = convertAmountToDecimals(INITIAL_PAID_AMOUNT);
-        await expect(
-            createContribution(
-                projectPdaKey,
-                userPdaKey,
-                userWallet,
-                new BN(projectContributionCounter),
-                contributionAmount,
-                new BN(SELECTED_REWARD),
-            )
-        ).rejects.toThrow(expectedErrorMessage);
-    });
-
     it('should fail if the contribution amount is insufficient for the selected reward', async () => {
         const INITIAL_PAID_AMOUNT = 5;
-        const SELECTED_REWARD = 1;
         const expectedErrorMessage = new RegExp('Contribution amount is insufficient for the selected reward.');
 
         // Prepare Project context
         const { projectPdaKey, projectAtaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet);
+        const rewardPdaKey = await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
 
         const projectContributionCounter = projectPda.contributionCounter;
@@ -217,18 +196,18 @@ describe('createContribution', () => {
                 userWallet,
                 new BN(projectContributionCounter),
                 contributionAmount,
-                new BN(SELECTED_REWARD),
+                new BN(0),
             )
         ).rejects.toThrow(expectedErrorMessage);
     });
 
     it('should fail if the reward supply has reached its maximum limit', async () => {
         const INITIAL_PAID_AMOUNT = 400;
-        const SELECTED_REWARD = 2; // [0,1,2]
         const expectedErrorMessage = new RegExp('Reward supply has reached its maximum limit.');
 
         // Prepare Project context
         const { projectPdaKey, projectAtaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet);
+        const rewardPdaKey = await createReward({ ...reward1, maxSupply: new BN(1) }, projectPdaKey, creatorUserPdaKey, creatorWallet);
         let projectPda = await program.account.project.fetch(projectPdaKey);
         let projectContributionCounter = projectPda.contributionCounter;
 
@@ -241,7 +220,7 @@ describe('createContribution', () => {
             userWallet,
             new BN(projectContributionCounter),
             contributionAmount,
-            new BN(SELECTED_REWARD),
+            new BN(0),
         );
 
         // Attempt to create a contribution after the limit is reached
@@ -260,18 +239,19 @@ describe('createContribution', () => {
                 anotherWallet,
                 new BN(projectContributionCounter),
                 contributionAmount,
-                new BN(SELECTED_REWARD),
+                new BN(0),
             )
         ).rejects.toThrow(expectedErrorMessage);
     });
 
     it('should update the User and Project contributions list', async () => {
-        
-        const INITIAL_PAID_AMOUNT = 5;
-        const SELECTED_REWARD = 0; // [0,1,2]        
+
+        const INITIAL_PAID_AMOUNT = 100;
+        const rewardCounter = 0;
 
         // Prepare Project context
         const { projectPdaKey, projectAtaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet)
+        const rewardPdaKey = await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
 
         const projectContributionCounter = projectPda.contributionCounter;
@@ -284,7 +264,7 @@ describe('createContribution', () => {
             userWallet,
             new BN(projectContributionCounter),
             contributionAmount,
-            new BN(0),
+            new BN(rewardCounter),
         );
 
         // Get projectContributions PDA Pubkey

@@ -10,6 +10,7 @@ import {
     newAssociatedTokenAccount,
     newPdaAssociatedTokenAccount
 } from "./token/token_config";
+import { Reward } from './reward/reward_type';
 
 export const LAMPORTS_INIT_BALANCE = 1000 * LAMPORTS_PER_SOL; // 1000 SOL per wallet
 
@@ -52,12 +53,7 @@ export const createUser = async (userData: User, wallet: Keypair): Promise<Publi
 
     // Call the createUser method
     const createUserTx = await program.methods
-        .createUser(
-            userData.name ?? null,
-            userData.avatar_url ?? null,
-            userData.bio ?? null,
-            userData.city ?? null,
-        )
+        .createUser()
         .accountsPartial({
             signer: wallet.publicKey,
             user: userPdaPublicKey,
@@ -110,32 +106,24 @@ export const createProject = async (
         program.programId
     );
 
+    const [rewardsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("rewards"), projectPdaKey.toBuffer()],
+        program.programId
+    );
+
     const userWalletAtaPubkey: PublicKey = getAssociatedTokenAddressSync(MINT_ADDRESS, wallet.publicKey, false);
     const projectAtaKey = await newPdaAssociatedTokenAccount(wallet, projectPdaKey);
-
-    // Rewards serialization
-    const serializedRewards = projectData.rewards.map((reward) => ({
-        name: reward.name,
-        description: reward.description,
-        price: new BN(reward.price),
-        maxSupply: new BN(reward.maxSupply),
-        currentSupply: new BN(reward.currentSupply),
-    }));
 
     // Call the createProject method
     const createTx = await program.methods
         .createProject(
-            projectData.name,
-            projectData.imageUrl,
-            projectData.description,
+            projectData.metadataUri,
             projectData.goalAmount,
             new BN(Math.floor(projectData.endTime / 1000)),
-            serializedRewards,
             projectData.safetyDeposit,
-            projectData.xAccountUrl,
-            projectData.category
         )
         .accountsPartial({
+            rewards: rewardsPubkey,
             user: userPubkey,
             project: projectPdaKey,
             fromAta: userWalletAtaPubkey,
@@ -151,6 +139,47 @@ export const createProject = async (
     return { projectPdaKey, projectAtaKey };
 }
 
+export const createReward = async (reward: Reward, projectPubkey: PublicKey,
+    userPubkey: PublicKey,
+    wallet: Keypair): Promise<PublicKey> => {
+
+    const [rewardsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("rewards"), projectPubkey.toBuffer()],
+        program.programId
+    );
+
+    const rewardsPda = await program.account.rewards.fetch(rewardsPubkey);
+    const [rewardPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("reward"),
+        projectPubkey.toBuffer(),
+        new BN(rewardsPda.rewardCounter).add(new BN(1)).toArray('le', 2),
+        ],
+        program.programId
+    );
+
+    // Call the createUser method
+    const createRewardTx = await program.methods
+        .createReward(
+            reward.metadataUri,
+            reward.maxSupply,
+            reward.price
+        )
+        .accountsPartial({
+            project: projectPubkey,
+            reward: rewardPubkey,
+            rewards: rewardsPubkey,
+            owner: wallet.publicKey,
+            user: userPubkey,
+            systemProgram: systemProgram.programId,
+        })
+        .signers([wallet])
+        .rpc();
+
+    await confirmTransaction(program, createRewardTx);
+
+    return rewardPubkey;
+}
+
 /**
  * Create a new contribution
  * @param projectPubkey 
@@ -158,7 +187,7 @@ export const createProject = async (
  * @param wallet
  * @param projectContributionCounter
  * @param amount 
- * @param rewardId 
+ * @param rewardCounter 
  * @returns 
  */
 export const createContribution = async (
@@ -167,7 +196,7 @@ export const createContribution = async (
     wallet: Keypair,
     projectContributionCounter: BN,
     amount: BN,
-    rewardId: BN | null,
+    rewardCounter: BN | null,
 ): Promise<PublicKey> => {
 
     const [contributionPdaPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -179,6 +208,19 @@ export const createContribution = async (
         program.programId
     );
 
+    let rewardPdaKey: PublicKey | null = null;
+
+    if (rewardCounter !== null) {
+        const [pda] = anchor.web3.PublicKey.findProgramAddressSync(
+            [
+                Buffer.from("reward"),
+                projectPubkey.toBuffer(),
+                rewardCounter.add(new BN(1)).toArray('le', 2),
+            ],
+            program.programId
+        );
+        rewardPdaKey = pda;
+    }
     // Get projectContributions PDA Pubkey
     const [projectContributionsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
         [
@@ -202,13 +244,11 @@ export const createContribution = async (
 
     // Call the addContribution method
     const createTx = await program.methods
-        .addContribution(
-            amount,
-            rewardId !== null ? rewardId : null
-        )
+        .addContribution(amount)
         .accountsPartial({
             project: projectPubkey,
             projectContributions: projectContributionsPubkey,
+            reward: rewardPdaKey,
             user: userPubkey,
             userContributions: userContributionsPubkey,
             contribution: contributionPdaPublicKey,
@@ -276,6 +316,42 @@ export const createUnlockRequest = async (
     await confirmTransaction(program, createTx);
 
     return newUnlockRequestPubkey;
+}
+
+export const claimUnlockRequest = async (
+    projectPubkey: PublicKey,
+    userPubkey: PublicKey,
+    wallet: Keypair,
+    unlockRequestPubkey: PublicKey,
+    createdProjectCounter: number
+): Promise<void> => {
+    const [unlockRequestsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+            Buffer.from("project_unlock_requests"),
+            projectPubkey.toBuffer(),
+        ],
+        program.programId
+    );
+
+    // Get SPL Token transfer accounts
+    const fromAta = await getAssociatedTokenAddress(MINT_ADDRESS, projectPubkey, true);
+    const toAta = await getAssociatedTokenAddress(MINT_ADDRESS, wallet.publicKey, true);
+    const claimTx = await program.methods
+        .claimUnlockRequest(createdProjectCounter)
+        .accountsPartial({
+            user: userPubkey,
+            unlockRequests: unlockRequestsPubkey,
+            currentUnlockRequest: unlockRequestPubkey,
+            fromAta,
+            toAta,
+            project: projectPubkey,
+            owner: wallet.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID
+        })
+        .signers([wallet])
+        .rpc();
+
+    await confirmTransaction(program, claimTx);
 }
 
 export const createTransaction = async (

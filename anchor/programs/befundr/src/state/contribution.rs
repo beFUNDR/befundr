@@ -14,10 +14,10 @@ pub struct Contribution {
     pub current_owner: Pubkey, // User PDA pubkey
     pub project: Pubkey,
     pub amount: u64,
-    pub reward_id: Option<u64>,
     pub creation_timestamp: i64,
     pub is_claimed: Option<bool>,
     status: ContributionStatus,
+    pub reward: Option<Pubkey>,
 }
 
 impl Contribution {

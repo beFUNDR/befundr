@@ -4,7 +4,7 @@ import { program } from '../config';
 
 describe('createUser', () => {
 
-  it("Creates 3 users with predefined data", async () => {
+  it("Creates 3 users", async () => {
     const userDataList = [userData1, userData2, userData3]
     for (let i = 0; i < 3; i++) {
       const userWallet = await createUserWalletWithSol();
@@ -17,15 +17,11 @@ describe('createUser', () => {
 
       // Assert that the user profile was created correctly
       expect(user.owner.toString()).toEqual(userWallet.publicKey.toString());
-      expect(user.name).toEqual(userData.name ?? null);
-      expect(user.avatarUrl).toEqual(userData.avatar_url ?? null);
-      expect(user.bio).toEqual(userData.bio ?? null);
-      expect(user.city).toEqual(userData.city ?? null);
       expect(user.createdProjectCounter).toEqual(0);
     }
   });
 
-  it("Creates 2 users with empty data", async () => {
+  it("Creates 2 users", async () => {
     for (let i = 0; i < 2; i++) {
       const userWallet = await createUserWalletWithSol();
 
@@ -36,10 +32,6 @@ describe('createUser', () => {
 
       // Assert that the user profile was created correctly
       expect(user.owner.toString()).toEqual(userWallet.publicKey.toString());
-      expect(user.name).toBeNull();
-      expect(user.avatarUrl).toBeNull();
-      expect(user.bio).toBeNull();
-      expect(user.city).toBeNull();
       expect(user.createdProjectCounter).toEqual(0);
     }
   });

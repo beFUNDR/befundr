@@ -14,6 +14,7 @@ pub struct UnlockRequest {
     pub end_time: i64,
     pub unlock_time: i64,
     pub status: UnlockStatus,
+    pub is_claimed: bool,
 
     #[max_len(MAX_VOTE_NUMBER)]
     pub votes: Vec<Pubkey>,
