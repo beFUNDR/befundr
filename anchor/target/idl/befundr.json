@@ -1075,8 +1075,8 @@
   "errors": [
     {
       "code": 6000,
-      "name": "TransferFailed",
-      "msg": "Funds transfer failed."
+      "name": "ContributionNotFound",
+      "msg": "Contribution not found"
     }
   ],
   "types": [

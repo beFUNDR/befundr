@@ -1081,8 +1081,8 @@ export type Befundr = {
   "errors": [
     {
       "code": 6000,
-      "name": "transferFailed",
-      "msg": "Funds transfer failed."
+      "name": "contributionNotFound",
+      "msg": "Contribution not found"
     }
   ],
   "types": [

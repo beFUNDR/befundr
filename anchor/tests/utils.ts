@@ -114,7 +114,7 @@ export const createProject = async (
         program.programId
     );
 
-    const [rewardsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [rewardsPubkey] = PublicKey.findProgramAddressSync(
         [Buffer.from("rewards"), projectPdaKey.toBuffer()],
         program.programId
     );
@@ -151,13 +151,13 @@ export const createReward = async (reward: Reward, projectPubkey: PublicKey,
     userPubkey: PublicKey,
     wallet: Keypair): Promise<PublicKey> => {
 
-    const [rewardsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [rewardsPubkey] = PublicKey.findProgramAddressSync(
         [Buffer.from("rewards"), projectPubkey.toBuffer()],
         program.programId
     );
 
     const rewardsPda = await program.account.rewards.fetch(rewardsPubkey);
-    const [rewardPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [rewardPubkey] = PublicKey.findProgramAddressSync(
         [Buffer.from("reward"),
         projectPubkey.toBuffer(),
         new BN(rewardsPda.rewardCounter).add(new BN(1)).toArray('le', 2),
@@ -219,7 +219,7 @@ export const createContribution = async (
     let rewardPdaKey: PublicKey | null = null;
 
     if (rewardCounter !== null) {
-        const [pda] = anchor.web3.PublicKey.findProgramAddressSync(
+        const [pda] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("reward"),
                 projectPubkey.toBuffer(),
@@ -333,7 +333,7 @@ export const claimUnlockRequest = async (
     unlockRequestPubkey: PublicKey,
     createdProjectCounter: number
 ): Promise<void> => {
-    const [unlockRequestsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [unlockRequestsPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("project_unlock_requests"),
             projectPubkey.toBuffer(),

@@ -1,4 +1,4 @@
-import { anchor, program, PROGRAM_CONNECTION } from "../config";
+import { program, PROGRAM_CONNECTION } from "../config";
 import { claimUnlockRequest, createContribution, createProject, createUnlockRequest, createUser, createUserWalletWithSol } from "../utils";
 import { projectData2 } from "../project/project_dataset";
 import { userData1, userData2 } from "../user/user_dataset";
@@ -50,7 +50,7 @@ describe('claimUnlockRequest', () => {
         );
 
 
-        const [unlockRequestsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+        const [unlockRequestsPubkey] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("project_unlock_requests"),
                 projectPdaKey.toBuffer(),

@@ -2,7 +2,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { userData1, userData2, userData3 } from './user_dataset';
 import { projectData1 } from "../project/project_dataset";
 import { confirmTransaction, createUser, createUserWalletWithSol, createProject } from '../utils';
-import { program, systemProgram, anchor, PROGRAM_CONNECTION } from '../config';
+import { program, systemProgram, PROGRAM_CONNECTION } from '../config';
 import * as bs58 from "bs58";
 import { INITIAL_USER_ATA_BALANCE, InitMint, MintAmountTo } from "../token/token_config";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
@@ -49,13 +49,13 @@ describe('deleteUser', () => {
         const fetchUserAccount = await program.account.user.fetch(userPda);
 
         // Get the wallet info before deletion
-        const fetchOwnerWalletBf = await anchor.getProvider().connection.getAccountInfo(fetchUserAccount.owner);
+        const fetchOwnerWalletBf = await program.provider.connection.getAccountInfo(fetchUserAccount.owner);
 
         // Deletion should success
         await deleteUser(userPda, fetchUserAccount.owner, adminKeypair);
 
         // Get the wallet info after deletion
-        const fetchOwnerWalletAf = await anchor.getProvider().connection.getAccountInfo(fetchUserAccount.owner);
+        const fetchOwnerWalletAf = await program.provider.connection.getAccountInfo(fetchUserAccount.owner);
 
         // Check if lamports have been refund to owner
         expect(fetchOwnerWalletAf?.lamports).toBeGreaterThan(fetchOwnerWalletBf?.lamports ?? 0);
