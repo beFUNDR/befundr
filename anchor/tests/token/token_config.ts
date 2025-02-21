@@ -3,15 +3,16 @@ import {
     createMint,
     Account,
     mintTo,
-    getAssociatedTokenAddress,
     getAccount,
     getOrCreateAssociatedTokenAccount,
     getAssociatedTokenAddressSync,
 } from '@solana/spl-token';
-import { PROGRAM_CONNECTION } from "../config";
+import { context, PROGRAM_CONNECTION } from "../config";
 import { createUserWalletWithSol } from "../utils"
 import { BN } from "@coral-xyz/anchor";
-
+import { IS_BANKRUN_ENABLED, setupATA } from "../bankrun/bankrunUtils";
+import { AccountInfoBytes } from "solana-bankrun";
+export const USDC_MINT_ADDRESS = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 const MINT_DECIMALS = 6;
 var MINT_ADDRESS: PublicKey;
 var MINT_AUTHORITY: Keypair;
@@ -84,8 +85,11 @@ export const INITIAL_USER_ATA_BALANCE = convertAmountToDecimals(10000);
  * @param {Keypair} payer - The payer of the transaction fees.
  * @returns {Promise<Account>} The created associated token account.
  */
-const newAssociatedTokenAccount = async (payer: Keypair): Promise<Account> => {
-
+const newAssociatedTokenAccount = async (payer: Keypair): Promise<Account | AccountInfoBytes | null> => {
+    if (IS_BANKRUN_ENABLED) {
+        const ataPubkey = setupATA(context, USDC_MINT_ADDRESS, payer.publicKey);
+        return await context.banksClient.getAccount(ataPubkey);
+    }
     // Create new mint account
     if (typeof MINT_ADDRESS === 'undefined') {
         await InitMint();

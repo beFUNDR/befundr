@@ -40,18 +40,6 @@ describe('createProject', () => {
         expect(projectAtaBalanceAfter.toString()).toEqual(projectData1.safetyDeposit.toString());
     });
 
-    /**
-     * TODO Refactor
-     */
-    it.skip("should throw an error if the image url is too long", async () => {
-        const expectedError = /Error Code: ImageUrlTooLong\. Error Number: .*\. Error Message: Image URL is too long \(max 256 characters\).*/;
-        const MAX_URI_LENGTH = 256;
-        const projectData = { ...projectData1, imageUrl: "a".repeat(MAX_URI_LENGTH + 1) };
-
-        await expect(createProject(projectData, 0, userPdaKey, userWallet)).rejects
-            .toThrow(expectedError);
-    });
-
     it("should throw an error if the goal amount is too low", async () => {
         const expectedError = /Error Code: GoalAmountBelowLimit\. Error Number: .*\. Error Message: Goal amount is too low \(min \$1\).*/;
         const MIN_PROJECT_GOAL_AMOUNT = 0;

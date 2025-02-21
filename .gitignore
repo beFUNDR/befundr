@@ -47,5 +47,5 @@ test-ledger
 # Ignore all .env files
 .env*
 
-# Except .env.example
-!.env.example
+# Except .env example files
+!.env.*.example

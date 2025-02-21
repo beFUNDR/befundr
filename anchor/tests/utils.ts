@@ -1,7 +1,7 @@
 import { BlockheightBasedTransactionConfirmationStrategy, RpcResponseAndContext, SignatureResult, TransactionSignature, LAMPORTS_PER_SOL, Keypair, PublicKey } from "@solana/web3.js";
 import { Befundr } from "../src";
 import { User } from "./user/user_type";
-import { anchor, program, systemProgram } from "./config";
+import { context, program, systemProgram } from "./config";
 import { BN, Program } from "@coral-xyz/anchor";
 import { Project } from "./project/project_type";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, getAssociatedTokenAddressSync } from "@solana/spl-token";
@@ -10,11 +10,16 @@ import {
     newAssociatedTokenAccount,
     newPdaAssociatedTokenAccount
 } from "./token/token_config";
+import { createAccount, IS_BANKRUN_ENABLED } from "./bankrun/bankrunUtils";
 import { Reward } from './reward/reward_type';
 
 export const LAMPORTS_INIT_BALANCE = 1000 * LAMPORTS_PER_SOL; // 1000 SOL per wallet
 
-export const confirmTransaction = async (program: Program<Befundr>, tx: TransactionSignature): Promise<RpcResponseAndContext<SignatureResult>> => {
+export const confirmTransaction = async (program: Program<Befundr>, tx: TransactionSignature): Promise<RpcResponseAndContext<SignatureResult> | void> => {
+    if (IS_BANKRUN_ENABLED) {
+        //No need to confirm transactions when using Bankrun
+        return Promise.resolve();
+    }
     const latestBlockhash = await program.provider.connection.getLatestBlockhash();
     const confirmationStrategy: BlockheightBasedTransactionConfirmationStrategy = { ...latestBlockhash, signature: tx };
 
@@ -33,6 +38,9 @@ export const confirmTransaction = async (program: Program<Befundr>, tx: Transact
  * @returns 
  */
 export const createUserWalletWithSol = async (): Promise<Keypair> => {
+    if (IS_BANKRUN_ENABLED) {
+        return Promise.resolve(createAccount(context));
+    }
     const wallet = new Keypair()
     const tx = await program.provider.connection.requestAirdrop(wallet.publicKey, LAMPORTS_INIT_BALANCE);
     await confirmTransaction(program, tx);
@@ -46,7 +54,7 @@ export const createUserWalletWithSol = async (): Promise<Keypair> => {
  * @returns 
  */
 export const createUser = async (userData: User, wallet: Keypair): Promise<PublicKey> => {
-    const [userPdaPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [userPdaPublicKey] = PublicKey.findProgramAddressSync(
         [Buffer.from("user"), wallet.publicKey.toBuffer()],
         program.programId
     );
@@ -98,7 +106,7 @@ export const createProject = async (
     const projectPdaKey = getProjectPdaKey(userPubkey, userProjectCounter);
 
     // Get projectContributions PDA Pubkey
-    const [projectContributionsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [projectContributionsPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("project_contributions"),
             projectPdaKey.toBuffer(),
@@ -199,7 +207,7 @@ export const createContribution = async (
     rewardCounter: BN | null,
 ): Promise<PublicKey> => {
 
-    const [contributionPdaPublicKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [contributionPdaPublicKey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("contribution"),
             projectPubkey.toBuffer(),
@@ -222,7 +230,7 @@ export const createContribution = async (
         rewardPdaKey = pda;
     }
     // Get projectContributions PDA Pubkey
-    const [projectContributionsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [projectContributionsPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("project_contributions"),
             projectPubkey.toBuffer(),
@@ -230,7 +238,7 @@ export const createContribution = async (
         program.programId
     );
     // Get userContributions PDA Pubkey
-    const [userContributionsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [userContributionsPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("user_contributions"),
             userPubkey.toBuffer(),
@@ -272,14 +280,14 @@ export const createUnlockRequest = async (
     unlockRequestsCounter: number,
     amountRequested: number
 ): Promise<PublicKey> => {
-    const [unlockRequestsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [unlockRequestsPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("project_unlock_requests"),
             projectPubkey.toBuffer(),
         ],
         program.programId
     );
-    const [newUnlockRequestPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [newUnlockRequestPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("unlock_request"),
             projectPubkey.toBuffer(),
@@ -288,7 +296,7 @@ export const createUnlockRequest = async (
         program.programId
     );
 
-    const [currentUnlockRequestPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [currentUnlockRequestPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("unlock_request"),
             projectPubkey.toBuffer(),
@@ -362,7 +370,7 @@ export const createTransaction = async (
     sellingPrice: number
 ): Promise<PublicKey> => {
 
-    const [saleTransactionPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [saleTransactionPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("sale_transaction"),
             contributionPubkey.toBuffer(),
@@ -370,7 +378,7 @@ export const createTransaction = async (
         program.programId
     );
 
-    const [projectSaleTransactionsPdaKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [projectSaleTransactionsPdaKey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("project_sale_transactions"),
             projectPdaKey.toBuffer(),
@@ -406,7 +414,7 @@ export const completeTransaction = async (
     sellerPubkey: PublicKey,
 ): Promise<PublicKey> => {
 
-    const [historyTransactionsPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [historyTransactionsPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("history_transactions"),
             contributionPdaKey.toBuffer(),
@@ -414,7 +422,7 @@ export const completeTransaction = async (
         program.programId
     );
 
-    const [saleTransactionPubkey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [saleTransactionPubkey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("sale_transaction"),
             contributionPdaKey.toBuffer(),
@@ -422,7 +430,7 @@ export const completeTransaction = async (
         program.programId
     );
 
-    const [buyerContributionsPdaKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [buyerContributionsPdaKey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("user_contributions"),
             buyerUserPdaKey.toBuffer(),
@@ -430,7 +438,7 @@ export const completeTransaction = async (
         program.programId
     );
 
-    const [sellerContributionsPdaKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [sellerContributionsPdaKey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("user_contributions"),
             sellerUserPdaKey.toBuffer(),
@@ -438,7 +446,7 @@ export const completeTransaction = async (
         program.programId
     );
 
-    const [projectSaleTransactionsPdaKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [projectSaleTransactionsPdaKey] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("project_sale_transactions"),
             projectPdaKey.toBuffer(),

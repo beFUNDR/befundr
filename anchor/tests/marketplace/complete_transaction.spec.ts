@@ -1,5 +1,5 @@
 import { userData3 } from './../user/user_dataset';
-import { anchor, program, PROGRAM_CONNECTION } from "../config";
+import { program, PROGRAM_CONNECTION } from "../config";
 import { completeTransaction, createContribution, createProject, createReward, createTransaction, createUser, createUserWalletWithSol } from "../utils";
 import { userData1, userData2 } from "../user/user_dataset";
 import { projectData1 } from "../project/project_dataset";
@@ -59,7 +59,7 @@ describe('complete_transaction', () => {
         );
         const sellingPrice = convertAmountToDecimals(200);
         const saleTransactionPdaKey = await createTransaction(projectPdaKey, contributionPdaKey, sellerUserPdaKey, sellerWallet, sellingPrice);
-        const [sellerUserContributionsPdaKey] = anchor.web3.PublicKey.findProgramAddressSync(
+        const [sellerUserContributionsPdaKey] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("user_contributions"),
                 sellerUserPdaKey.toBuffer(),
@@ -78,7 +78,7 @@ describe('complete_transaction', () => {
         await completeTransaction(projectPdaKey, contributionPdaKey, sellerUserPdaKey, buyerUserPdaKey, buyerWallet, sellerWallet.publicKey);
 
 
-        const [buyerUserContributionsPdaKey] = anchor.web3.PublicKey.findProgramAddressSync(
+        const [buyerUserContributionsPdaKey] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("user_contributions"),
                 buyerUserPdaKey.toBuffer(),

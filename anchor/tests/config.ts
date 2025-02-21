@@ -1,15 +1,24 @@
-import * as anchor from '@coral-xyz/anchor';
+import { ProgramTestContext } from 'solana-bankrun';
 import { Befundr } from '../src';
+import { getProvider, Program, Provider, web3, workspace } from '@coral-xyz/anchor';
+import { initBankrun, IS_BANKRUN_ENABLED } from './bankrun/bankrunUtils';
 
-anchor.setProvider(anchor.AnchorProvider.env());
+let context: ProgramTestContext;
+let provider: Provider;
+let program: Program<Befundr>;
 
-const systemProgram = anchor.web3.SystemProgram;
-const program = anchor.workspace.Befundr as anchor.Program<Befundr>;
-const PROGRAM_CONNECTION = anchor.getProvider().connection;
+beforeAll(async () => {
+    if (IS_BANKRUN_ENABLED) {
+        [context, provider, program] = await initBankrun();
+        console.log("Using Bankrun");
+    } else {
+        provider = getProvider();
+        program = workspace.Befundr as Program<Befundr>;
+        console.log("Using Solana local validator");
+    }
+});
 
-export {
-    systemProgram,
-    program,
-    anchor,
-    PROGRAM_CONNECTION
-}
+export { context, provider, program };
+export const PROGRAM_CONNECTION = getProvider().connection;
+
+export const systemProgram = web3.SystemProgram;

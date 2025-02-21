@@ -245,7 +245,6 @@ describe('createContribution', () => {
     });
 
     it('should update the User and Project contributions list', async () => {
-
         const INITIAL_PAID_AMOUNT = 100;
         const rewardCounter = 0;
 
