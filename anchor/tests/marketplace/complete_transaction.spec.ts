@@ -1,12 +1,13 @@
 import { userData3 } from './../user/user_dataset';
 import { program, PROGRAM_CONNECTION } from "../config";
-import { completeTransaction, createContribution, createProject, createTransaction, createUser, createUserWalletWithSol } from "../utils";
+import { completeTransaction, createContribution, createProject, createReward, createTransaction, createUser, createUserWalletWithSol } from "../utils";
 import { userData1, userData2 } from "../user/user_dataset";
 import { projectData1 } from "../project/project_dataset";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { Account, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { convertAmountToDecimals, getAtaBalance, INITIAL_USER_ATA_BALANCE, InitMint, MintAmountTo } from "../token/token_config";
 import { BN } from "@coral-xyz/anchor";
+import { reward1 } from '../reward/reward_dataset';
 
 describe('complete_transaction', () => {
     let creatorWallet: Keypair, sellerWallet: Keypair, buyerWallet: Keypair, creatorUserPdaKey: PublicKey, sellerUserPdaKey: PublicKey, buyerUserPdaKey: PublicKey, creatorWalletAta: Account, sellerWalletAta: Account, buyerWalletAta: Account, MINT_ADDRESS: PublicKey;
@@ -44,6 +45,7 @@ describe('complete_transaction', () => {
 
     it("should successfully complete a buy transaction", async () => {
         const { projectPdaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet)
+        await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
         const projectContributionCounter = new BN(projectPda.contributionCounter);
         const contributionAmount = convertAmountToDecimals(100);

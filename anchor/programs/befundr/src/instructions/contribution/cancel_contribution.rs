@@ -13,6 +13,7 @@ pub fn cancel_contribution(ctx: Context<CancelContribution>) -> Result<()> {
     let user = &ctx.accounts.user;
     let signer = &mut ctx.accounts.signer;
     let contribution = &mut ctx.accounts.contribution;
+    let reward = &mut ctx.accounts.reward;
 
     // Check if the project is in a fundraising state and in fundraising period
     require!(
@@ -36,15 +37,9 @@ pub fn cancel_contribution(ctx: Context<CancelContribution>) -> Result<()> {
     // Update the project's raised_amount and contribution_counter
     project.raised_amount -= contribution.amount; // Todo: handle USDC ATA
 
-    let mut reward: Option<&mut Reward> = None;
-    if contribution.reward_id.is_some() {
-        reward = project
-            .rewards
-            .get_mut(contribution.reward_id.unwrap() as usize);
-    }
-
     // Update project reward current supply
-    if let Some(reward) = reward {
+    if let (Some(reward), Some(contribution_reward)) = (reward, contribution.reward) {
+        require!(reward.key() == contribution_reward, ContributionError::IncorrectReward);
         reward.remove_supply()?;
     }
 
@@ -63,6 +58,9 @@ pub struct CancelContribution<'info> {
 
     #[account(mut, close = signer)]
     pub contribution: Account<'info, Contribution>,
+
+    #[account(mut, has_one = project)]
+    pub reward: Option<Account<'info, Reward>>,
 
     #[account(mut)]
     pub signer: Signer<'info>,

@@ -9,17 +9,14 @@ use anchor_lang::prelude::*;
 //use anchor_spl::mint::USDC;
 use anchor_spl::token::{Token, TokenAccount};
 
-pub fn add_contribution(
-    ctx: Context<AddContribution>,
-    amount: u64,
-    reward_id: Option<u64>,
-) -> Result<()> {
+pub fn add_contribution(ctx: Context<AddContribution>, amount: u64) -> Result<()> {
     let now: i64 = Clock::get()?.unix_timestamp;
     let project = &mut ctx.accounts.project;
     let user = &ctx.accounts.user;
     let user_contributions = &mut ctx.accounts.user_contributions;
     let contribution = &mut ctx.accounts.contribution;
     let project_contributions = &mut ctx.accounts.project_contributions;
+    let reward = &mut ctx.accounts.reward;
 
     // Check if the project is in a fundraising state and in fundraising period
     require!(
@@ -34,16 +31,15 @@ pub fn add_contribution(
     // Amount must be positive and greater than 0
     require!(amount > 0, ContributionError::RewardPriceError);
 
-    let mut reward: Option<&mut Reward> = None;
-    if reward_id.is_some() {
-        reward_validation(project, amount, reward_id.unwrap())?;
-        // set a mutable variable with project reward
-        reward = project.rewards.get_mut(reward_id.unwrap() as usize);
-    }
-    // Update reward supply
+    // Handle reward update
     if let Some(reward) = reward {
+        require!(amount >= reward.price, ContributionError::RewardPriceError);
+        if let Some(max_supply) = reward.max_supply {
+            require!(reward.current_supply < max_supply as u32, RewardError::RewardSupplyReached);
+        }
         reward.add_supply()?;
         contribution.is_claimed = Some(false);
+        contribution.reward = Some(reward.key());
     }
 
     // Initialize the Contribution PDA if all checks pass
@@ -51,7 +47,6 @@ pub fn add_contribution(
     contribution.current_owner = user.key();
     contribution.project = project.key();
     contribution.amount = amount;
-    contribution.reward_id = reward_id;
     contribution.creation_timestamp = now;
     contribution.set_active();
 
@@ -80,29 +75,16 @@ pub fn add_contribution(
     Ok(())
 }
 
-pub fn reward_validation(project: &Project, amount: u64, reward_id: u64) -> Result<()> {
-    // We need to ensure the selected reward exists in the project rewards list
-    if let Some(reward) = project.rewards.get(reward_id as usize) {
-        // Validate that the contribution amount is sufficient for the selected reward
-        require!(amount >= reward.price, ContributionError::RewardPriceError);
-        // Validate and update the reward supply
-        if let Some(max_supply) = reward.max_supply {
-            require!(reward.current_supply < max_supply as u32, RewardError::RewardSupplyReached);
-        }
-    } else {
-        return Err(ContributionError::RewardError.into());
-    }
-
-    Ok(())
-}
-
 #[derive(Accounts)]
 pub struct AddContribution<'info> {
     #[account(mut)]
     pub project: Account<'info, Project>,
 
-    #[account(mut)]
+    #[account(mut, has_one = project)]
     pub project_contributions: Account<'info, ProjectContributions>,
+
+    #[account(mut, has_one = project)]
+    pub reward: Option<Account<'info, Reward>>,
 
     pub user: Account<'info, User>,
 

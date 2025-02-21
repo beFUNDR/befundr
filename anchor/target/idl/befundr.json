@@ -22,11 +22,20 @@
       "accounts": [
         {
           "name": "project",
-          "writable": true
+          "writable": true,
+          "relations": [
+            "project_contributions",
+            "reward"
+          ]
         },
         {
           "name": "project_contributions",
           "writable": true
+        },
+        {
+          "name": "reward",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "user"
@@ -96,12 +105,6 @@
         {
           "name": "amount",
           "type": "u64"
-        },
-        {
-          "name": "reward_id",
-          "type": {
-            "option": "u64"
-          }
         }
       ]
     },
@@ -120,7 +123,10 @@
       "accounts": [
         {
           "name": "project",
-          "writable": true
+          "writable": true,
+          "relations": [
+            "reward"
+          ]
         },
         {
           "name": "user"
@@ -128,6 +134,11 @@
         {
           "name": "contribution",
           "writable": true
+        },
+        {
+          "name": "reward",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "signer",
@@ -140,6 +151,108 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "claim_unlock_request",
+      "discriminator": [
+        136,
+        165,
+        18,
+        154,
+        15,
+        250,
+        197,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "unlock_requests",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116,
+                  95,
+                  117,
+                  110,
+                  108,
+                  111,
+                  99,
+                  107,
+                  95,
+                  114,
+                  101,
+                  113,
+                  117,
+                  101,
+                  115,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              }
+            ]
+          }
+        },
+        {
+          "name": "current_unlock_request",
+          "writable": true
+        },
+        {
+          "name": "from_ata",
+          "writable": true
+        },
+        {
+          "name": "to_ata",
+          "writable": true
+        },
+        {
+          "name": "project",
+          "relations": [
+            "unlock_requests",
+            "current_unlock_request"
+          ]
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "user"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "created_project_counter",
+          "type": "u16"
+        }
+      ]
     },
     {
       "name": "complete_transaction",
@@ -301,6 +414,30 @@
           "writable": true
         },
         {
+          "name": "rewards",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              }
+            ]
+          }
+        },
+        {
           "name": "project_sale_transactions",
           "writable": true,
           "pda": {
@@ -444,15 +581,7 @@
       ],
       "args": [
         {
-          "name": "name",
-          "type": "string"
-        },
-        {
-          "name": "image_url",
-          "type": "string"
-        },
-        {
-          "name": "description",
+          "name": "metadata_uri",
           "type": "string"
         },
         {
@@ -464,30 +593,73 @@
           "type": "i64"
         },
         {
-          "name": "rewards",
-          "type": {
-            "vec": {
-              "defined": {
-                "name": "Reward"
-              }
-            }
-          }
-        },
-        {
           "name": "safety_deposit",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "create_reward",
+      "discriminator": [
+        55,
+        169,
+        173,
+        212,
+        11,
+        55,
+        47,
+        130
+      ],
+      "accounts": [
+        {
+          "name": "project",
+          "writable": true,
+          "relations": [
+            "rewards"
+          ]
         },
         {
-          "name": "x_account_url",
+          "name": "reward",
+          "writable": true
+        },
+        {
+          "name": "rewards",
+          "writable": true
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "user"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "metadata_uri",
           "type": "string"
         },
         {
-          "name": "category",
+          "name": "max_supply",
           "type": {
-            "defined": {
-              "name": "ProjectCategory"
-            }
+            "option": "u16"
           }
+        },
+        {
+          "name": "price",
+          "type": "u64"
         }
       ]
     },
@@ -706,32 +878,7 @@
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": [
-        {
-          "name": "name",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "avatar_url",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "bio",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "city",
-          "type": {
-            "option": "string"
-          }
-        }
-      ]
+      "args": []
     },
     {
       "name": "delete_user",
@@ -765,80 +912,6 @@
         }
       ],
       "args": []
-    },
-    {
-      "name": "update_user",
-      "discriminator": [
-        9,
-        2,
-        160,
-        169,
-        118,
-        12,
-        207,
-        84
-      ],
-      "accounts": [
-        {
-          "name": "user",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  117,
-                  115,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              }
-            ]
-          }
-        },
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true,
-          "relations": [
-            "user"
-          ]
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "name",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "avatar_url",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "bio",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "city",
-          "type": {
-            "option": "string"
-          }
-        }
-      ]
     }
   ],
   "accounts": [
@@ -905,6 +978,32 @@
         231,
         72,
         3
+      ]
+    },
+    {
+      "name": "Reward",
+      "discriminator": [
+        174,
+        129,
+        42,
+        212,
+        190,
+        18,
+        45,
+        34
+      ]
+    },
+    {
+      "name": "Rewards",
+      "discriminator": [
+        12,
+        223,
+        68,
+        101,
+        63,
+        33,
+        38,
+        101
       ]
     },
     {
@@ -1003,12 +1102,6 @@
             "type": "u64"
           },
           {
-            "name": "reward_id",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
             "name": "creation_timestamp",
             "type": "i64"
           },
@@ -1024,6 +1117,12 @@
               "defined": {
                 "name": "ContributionStatus"
               }
+            }
+          },
+          {
+            "name": "reward",
+            "type": {
+              "option": "pubkey"
             }
           }
         ]
@@ -1107,28 +1206,8 @@
             "type": "pubkey"
           },
           {
-            "name": "name",
+            "name": "metadata_uri",
             "type": "string"
-          },
-          {
-            "name": "image_url",
-            "type": "string"
-          },
-          {
-            "name": "description",
-            "type": "string"
-          },
-          {
-            "name": "x_account_url",
-            "type": "string"
-          },
-          {
-            "name": "category",
-            "type": {
-              "defined": {
-                "name": "ProjectCategory"
-              }
-            }
           },
           {
             "name": "goal_amount",
@@ -1159,60 +1238,8 @@
             "type": "u16"
           },
           {
-            "name": "rewards",
-            "type": {
-              "vec": {
-                "defined": {
-                  "name": "Reward"
-                }
-              }
-            }
-          },
-          {
-            "name": "feed",
-            "type": "pubkey"
-          },
-          {
             "name": "safety_deposit",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ProjectCategory",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Technology"
-          },
-          {
-            "name": "Art"
-          },
-          {
-            "name": "Education"
-          },
-          {
-            "name": "Health"
-          },
-          {
-            "name": "Environment"
-          },
-          {
-            "name": "SocialImpact"
-          },
-          {
-            "name": "Entertainment"
-          },
-          {
-            "name": "Science"
-          },
-          {
-            "name": "Finance"
-          },
-          {
-            "name": "Sports"
           }
         ]
       }
@@ -1285,11 +1312,11 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "name",
-            "type": "string"
+            "name": "project",
+            "type": "pubkey"
           },
           {
-            "name": "description",
+            "name": "metadata_uri",
             "type": "string"
           },
           {
@@ -1305,6 +1332,22 @@
           {
             "name": "current_supply",
             "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Rewards",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_counter",
+            "type": "u16"
           }
         ]
       }
@@ -1379,6 +1422,10 @@
             }
           },
           {
+            "name": "is_claimed",
+            "type": "bool"
+          },
+          {
             "name": "votes",
             "type": {
               "vec": "pubkey"
@@ -1435,30 +1482,6 @@
           {
             "name": "owner",
             "type": "pubkey"
-          },
-          {
-            "name": "name",
-            "type": {
-              "option": "string"
-            }
-          },
-          {
-            "name": "avatar_url",
-            "type": {
-              "option": "string"
-            }
-          },
-          {
-            "name": "bio",
-            "type": {
-              "option": "string"
-            }
-          },
-          {
-            "name": "city",
-            "type": {
-              "option": "string"
-            }
           },
           {
             "name": "created_project_counter",

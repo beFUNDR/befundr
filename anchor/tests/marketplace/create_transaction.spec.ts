@@ -1,5 +1,5 @@
 import { program, PROGRAM_CONNECTION } from "../config";
-import { createContribution, createProject, createTransaction, createUser, createUserWalletWithSol } from "../utils";
+import { createContribution, createProject, createReward, createTransaction, createUser, createUserWalletWithSol } from "../utils";
 import { userData1, userData2 } from "../user/user_dataset";
 
 import { projectData1 } from "../project/project_dataset";
@@ -7,6 +7,7 @@ import { convertAmountToDecimals, INITIAL_USER_ATA_BALANCE, InitMint, MintAmount
 import { Account, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
+import { reward1 } from "../reward/reward_dataset";
 
 describe('create_transaction', () => {
     let creatorWallet: Keypair, sellerWallet: Keypair, creatorUserPdaKey: PublicKey, sellerPdaKey: PublicKey, creatorWalletAta: Account, sellerWalletAta: Account, MINT_ADDR: PublicKey;
@@ -36,6 +37,7 @@ describe('create_transaction', () => {
 
     it("should successfully create a sell transaction", async () => {
         const { projectPdaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet)
+        await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
         const projectContributionCounter = new BN(projectPda.contributionCounter);
         const contributionAmount = convertAmountToDecimals(100);
@@ -61,6 +63,7 @@ describe('create_transaction', () => {
 
     it("should throw an error if the contribution is already for sale", async () => {
         const { projectPdaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet);
+        await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
         const projectContributionCounter = new BN(projectPda.contributionCounter);
         const contributionAmount = convertAmountToDecimals(100);
@@ -106,6 +109,7 @@ describe('create_transaction', () => {
 
     it("should throw an error if the selling price is 0", async () => {
         const { projectPdaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet);
+        await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
         const projectContributionCounter = new BN(projectPda.contributionCounter);
         const contributionAmount = convertAmountToDecimals(100);

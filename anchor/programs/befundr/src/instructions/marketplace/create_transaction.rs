@@ -38,7 +38,6 @@ pub fn create_transaction(ctx: Context<CreateTransaction>, selling_price: u64) -
     sale_transaction.creation_timestamp = now;
     sale_transaction.seller = user.key();
     sale_transaction.selling_price = selling_price;
-    sale_transaction.reward_id = contribution.reward_id.unwrap();
     project_sale_transactions
         .sale_transactions
         .push(sale_transaction.key());

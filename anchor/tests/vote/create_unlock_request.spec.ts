@@ -1,5 +1,5 @@
 import { program, PROGRAM_CONNECTION } from "../config";
-import { createContribution, createProject, createUnlockRequest, createUser, createUserWalletWithSol } from "../utils";
+import { createContribution, createProject, createReward, createUnlockRequest, createUser, createUserWalletWithSol } from "../utils";
 import { projectData2 } from "../project/project_dataset";
 import { userData1, userData2 } from "../user/user_dataset";
 import { UnlockStatus } from "./unlock_status";
@@ -7,6 +7,7 @@ import { convertAmountToDecimals, INITIAL_USER_ATA_BALANCE, InitMint, MintAmount
 import { Account, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
+import { reward1 } from "../reward/reward_dataset";
 
 describe('createUnlockRequest', () => {
     let creatorWallet: Keypair, contributorWallet: Keypair, creatorUserPdaKey: PublicKey, contributorPdaKey: PublicKey, creatorWalletAta: Account, contributorWalletAta: Account, MINT_ADDR: PublicKey;
@@ -111,6 +112,7 @@ describe('createUnlockRequest', () => {
 
     it("should reject as the project status is not Realising", async () => {
         const { projectPdaKey } = await createProject(projectData2, 0, creatorUserPdaKey, creatorWallet)
+        await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
         const projectPda = await program.account.project.fetch(projectPdaKey);
         const projectContributionCounter = new BN(projectPda.contributionCounter);
         const contributionAmount = convertAmountToDecimals(100);

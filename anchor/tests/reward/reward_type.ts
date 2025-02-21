@@ -1,9 +1,8 @@
 import { BN } from "@coral-xyz/anchor"
 
 export type Reward = {
-  name: string
-  description: string
+  metadataUri: string
   price: BN
-  maxSupply: BN
+  maxSupply: BN | null
   currentSupply: BN
 }
