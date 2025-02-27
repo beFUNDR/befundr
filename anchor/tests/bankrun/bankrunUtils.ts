@@ -1,80 +1,34 @@
-import { ACCOUNT_SIZE, AccountLayout, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { Keypair, TransactionInstruction, Transaction, PublicKey, AccountInfo, clusterApiUrl, Connection } from "@solana/web3.js";
-import { AddedAccount, BanksClient, BanksTransactionResultWithMeta, ProgramTestContext, startAnchor } from "solana-bankrun";
-import { systemProgram } from "../config";
-import { Befundr, BefundrIDL } from "../../src/befundr-exports";
-import { setProvider, Program } from "@coral-xyz/anchor";
+import { BanksClient, ProgramTestContext, startAnchor } from "solana-bankrun";
+import { setProvider } from "@coral-xyz/anchor";
 import { BankrunProvider } from "anchor-bankrun";
-import { USDC_MINT_ADDRESS } from "../token/token_config";
-import { USDC_ACCOUNT } from "./usdcMintAccount";
+import { Keypair, PublicKey } from "@solana/web3.js";
+import { systemProgram } from "../config";
+import { getAccount as getAccountBankrun } from "spl-token-bankrun";
 
 export const IS_BANKRUN_ENABLED: boolean = process.env.BANKRUN_ENABLED == "true";
 const INIT_BALANCE_LAMPORTS: number = 500_000_000_000;
 
-export const initBankrun = async (): Promise<[ProgramTestContext, BankrunProvider, Program<Befundr>]> => {
-    const usdcAccount: AddedAccount = { address: USDC_MINT_ADDRESS, info: USDC_ACCOUNT! };
-
-    const context = await startAnchor("", [], [usdcAccount]);
+/**
+ * Initializes the Bankrun environment by setting up the necessary context and provider.
+ *
+ * @async
+ * @returns {Promise<[ProgramTestContext, BankrunProvider]>} A promise that resolves to a tuple containing the initialized ProgramTestContext and BankrunProvider.
+ */
+export const initBankrun = async (): Promise<[ProgramTestContext, BankrunProvider]> => {
+    const context: ProgramTestContext = await startAnchor("", [], []);
     const provider = new BankrunProvider(context);
     setProvider(provider);
-    const program = new Program<Befundr>(
-        BefundrIDL as Befundr,
-        provider,
-    );
-    return [context, provider, program];
+    return [context, provider];
 }
 
-export const createAndProcessTransaction = async (
-    client: BanksClient,
-    payer: Keypair,
-    instruction: TransactionInstruction,
-    additionalSigners: Keypair[] = []
-): Promise<BanksTransactionResultWithMeta> => {
-    const tx = new Transaction();
-    const [latestBlockhash] = await client.getLatestBlockhash() ?? [];
-    tx.recentBlockhash = latestBlockhash;
-    tx.add(instruction);
-    tx.feePayer = payer.publicKey;
-    tx.sign(payer, ...additionalSigners);
-    return await client.tryProcessTransaction(tx);
-}
-
-export const setupATA = (
-    context: ProgramTestContext,
-    usdcMint: PublicKey,
-    owner: PublicKey,
-    amount: number = 0
-): PublicKey => {
-    const tokenAccData = Buffer.alloc(ACCOUNT_SIZE);
-    AccountLayout.encode(
-        {
-            mint: usdcMint,
-            owner,
-            amount: BigInt(amount),
-            delegateOption: 0,
-            delegate: PublicKey.default,
-            delegatedAmount: BigInt(0),
-            state: 1,
-            isNativeOption: 0,
-            isNative: BigInt(0),
-            closeAuthorityOption: 0,
-            closeAuthority: PublicKey.default,
-        },
-        tokenAccData,
-    );
-
-    const ata = getAssociatedTokenAddressSync(usdcMint, owner, true);
-    const ataAccountInfo = {
-        lamports: 1_000_000_000,
-        data: tokenAccData,
-        owner: TOKEN_PROGRAM_ID,
-        executable: false,
-    };
-
-    context.setAccount(ata, ataAccountInfo);
-    return ata;
-}
-
+/**
+ * Creates a new account with the specified amount of lamports.
+ *
+ * @param {ProgramTestContext} context - The context in which to create the account.
+ * @param {number} [lamportsAmount=INIT_BALANCE_LAMPORTS] - The amount of lamports to initialize the account with.
+ * @returns {Keypair} The keypair associated with the newly created account.
+ * @throws {Error} If the context is not initialized.
+ */
 export const createAccount = (context: ProgramTestContext, lamportsAmount: number = INIT_BALANCE_LAMPORTS): Keypair => {
     if (!context) {
         throw new Error("Context not initialized");
@@ -90,3 +44,31 @@ export const createAccount = (context: ProgramTestContext, lamportsAmount: numbe
     return keypair;
 }
 
+/**
+ * Retrieves the Associated Token Account (ATA) for a given address.
+ *
+ * @async
+ * @param {BanksClient} banksClient - The client used to interact with the bank.
+ * @param {PublicKey} ataAddress - The address of the Associated Token Account to retrieve.
+ * @returns {Promise<any | null>} A promise that resolves to the ATA if found, or null if an error occurs.
+ */
+export const getAta = async (banksClient: BanksClient, ataAddress: PublicKey): Promise<any | null> => {
+    try {
+        return await getAccountBankrun(banksClient, ataAddress);
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Retrieves the balance of a given account in lamports.
+ *
+ * @async
+ * @param {BanksClient} banksClient - The client used to interact with the bank.
+ * @param {PublicKey} accountAddress - The address of the account to retrieve the balance for.
+ * @returns {Promise<number | null>} A promise that resolves to the account balance in lamports, or null if the account does not exist.
+ */
+export const getAccountBalance = async (banksClient: BanksClient, accountAddress: PublicKey): Promise<number | null> => {
+    const account = await banksClient.getAccount(accountAddress);
+    return account?.lamports ?? null;
+}

@@ -1,40 +1,27 @@
-import { program, PROGRAM_CONNECTION } from "../config";
-import { createContribution, createProject, createReward, createUnlockRequest, createUser, createUserWalletWithSol } from "../utils";
+import { program } from "../config";
+import { createContribution, createProject, createReward, createUnlockRequest, createUser, createUserWalletWithSol } from "../utils/testUtils";
 import { projectData2 } from "../project/project_dataset";
 import { userData1, userData2 } from "../user/user_dataset";
 import { UnlockStatus } from "./unlock_status";
-import { convertAmountToDecimals, INITIAL_USER_ATA_BALANCE, InitMint, MintAmountTo } from "../token/token_config";
-import { Account, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import { convertAmountToDecimals, getOrCreateATA, INITIAL_USER_ATA_BALANCE, initMint, MINT_ADDRESS, mintAmountTo } from "../utils/tokenUtils";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import { reward1 } from "../reward/reward_dataset";
 
 describe('createUnlockRequest', () => {
-    let creatorWallet: Keypair, contributorWallet: Keypair, creatorUserPdaKey: PublicKey, contributorPdaKey: PublicKey, creatorWalletAta: Account, contributorWalletAta: Account, MINT_ADDR: PublicKey;
+    let creatorWallet: Keypair, contributorWallet: Keypair, creatorUserPdaKey: PublicKey, contributorPdaKey: PublicKey, creatorWalletAta: PublicKey, contributorWalletAta: PublicKey;
 
     beforeEach(async () => {
         creatorWallet = await createUserWalletWithSol();
         creatorUserPdaKey = await createUser(userData1, creatorWallet);
         contributorWallet = await createUserWalletWithSol();
         contributorPdaKey = await createUser(userData2, contributorWallet);
-        const { MINT_ADDRESS } = await InitMint();
-        MINT_ADDR = MINT_ADDRESS;
-        creatorWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            creatorWallet,
-            MINT_ADDRESS,
-            creatorWallet.publicKey
-        );
-        contributorWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            contributorWallet,
-            MINT_ADDRESS,
-            contributorWallet.publicKey
-        );
-        await MintAmountTo(creatorWallet, creatorWalletAta.address, INITIAL_USER_ATA_BALANCE);
-        await MintAmountTo(creatorWallet, contributorWalletAta.address, INITIAL_USER_ATA_BALANCE);
+        creatorWalletAta = await getOrCreateATA(creatorWallet, creatorWallet.publicKey);
+        contributorWalletAta = await getOrCreateATA(contributorWallet, contributorWallet.publicKey);
+        await mintAmountTo(creatorWallet, creatorWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
+        await mintAmountTo(creatorWallet, contributorWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
     }, 10000);
-    it.skip("should successfully create an unlock request", async () => {
+    it("should successfully create an unlock request", async () => {
         const { projectPdaKey } = await createProject(projectData2, 0, creatorUserPdaKey, creatorWallet)
         const projectPda = await program.account.project.fetch(projectPdaKey);
         const projectContributionCounter = new BN(projectPda.contributionCounter);
@@ -77,7 +64,7 @@ describe('createUnlockRequest', () => {
 
     });
 
-    it.skip("should reject as there is already one active", async () => {
+    it("should reject as there is already one active", async () => {
         const { projectPdaKey } = await createProject(projectData2, 0, creatorUserPdaKey, creatorWallet)
         const projectPda = await program.account.project.fetch(projectPdaKey);
         const projectContributionCounter = new BN(projectPda.contributionCounter);

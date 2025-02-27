@@ -1,5 +1,5 @@
 import { userData1, userData2, userData3 } from './user_dataset';
-import { createUser, createUserWalletWithSol } from '../utils';
+import { createUser, createUserWalletWithSol } from '../utils/testUtils';
 import { program } from '../config';
 
 describe('createUser', () => {

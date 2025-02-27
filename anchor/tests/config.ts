@@ -1,21 +1,25 @@
 import { ProgramTestContext } from 'solana-bankrun';
-import { Befundr } from '../src';
-import { getProvider, Program, Provider, web3, workspace } from '@coral-xyz/anchor';
+import { Befundr, BefundrIDL } from '../src';
+import { getProvider, Program, Provider, web3 } from '@coral-xyz/anchor';
 import { initBankrun, IS_BANKRUN_ENABLED } from './bankrun/bankrunUtils';
+import { initMint } from './utils/tokenUtils';
+import { BankrunProvider } from 'anchor-bankrun';
 
 let context: ProgramTestContext;
-let provider: Provider;
+let provider: Provider | BankrunProvider;
 let program: Program<Befundr>;
 
 beforeAll(async () => {
     if (IS_BANKRUN_ENABLED) {
-        [context, provider, program] = await initBankrun();
-        console.log("Using Bankrun");
+        [context, provider] = await initBankrun();
     } else {
         provider = getProvider();
-        program = workspace.Befundr as Program<Befundr>;
-        console.log("Using Solana local validator");
     }
+    program = new Program<Befundr>(
+        BefundrIDL as Befundr,
+        provider,
+    );
+    await initMint();
 });
 
 export { context, provider, program };

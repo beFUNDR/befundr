@@ -1,24 +1,23 @@
 import { BlockheightBasedTransactionConfirmationStrategy, RpcResponseAndContext, SignatureResult, TransactionSignature, LAMPORTS_PER_SOL, Keypair, PublicKey } from "@solana/web3.js";
-import { Befundr } from "../src";
-import { User } from "./user/user_type";
-import { context, program, systemProgram } from "./config";
+import { Befundr } from "../../src";
+import { User } from "../user/user_type";
+import { context, program, systemProgram } from "../config";
 import { BN, Program } from "@coral-xyz/anchor";
-import { Project } from "./project/project_type";
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { Project } from "../project/project_type";
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
 import {
+    getOrCreateATA,
     MINT_ADDRESS,
-    newAssociatedTokenAccount,
-    newPdaAssociatedTokenAccount
-} from "./token/token_config";
-import { createAccount, IS_BANKRUN_ENABLED } from "./bankrun/bankrunUtils";
-import { Reward } from './reward/reward_type';
+} from "./tokenUtils";
+import { createAccount, IS_BANKRUN_ENABLED } from "../bankrun/bankrunUtils";
+import { Reward } from '../reward/reward_type';
 
 export const LAMPORTS_INIT_BALANCE = 1000 * LAMPORTS_PER_SOL; // 1000 SOL per wallet
 
 export const confirmTransaction = async (program: Program<Befundr>, tx: TransactionSignature): Promise<RpcResponseAndContext<SignatureResult> | void> => {
     if (IS_BANKRUN_ENABLED) {
         //No need to confirm transactions when using Bankrun
-        return Promise.resolve();
+        return;
     }
     const latestBlockhash = await program.provider.connection.getLatestBlockhash();
     const confirmationStrategy: BlockheightBasedTransactionConfirmationStrategy = { ...latestBlockhash, signature: tx };
@@ -33,19 +32,23 @@ export const confirmTransaction = async (program: Program<Befundr>, tx: Transact
  */
 
 /**
- * Create wallet
- * It will contain some SOL
- * @returns 
+ * Creates a new user wallet and funds it with SOL.
+ *
+ * @async
+ * @returns {Promise<Keypair>} A promise that resolves to the newly created Keypair representing the user's wallet.
  */
 export const createUserWalletWithSol = async (): Promise<Keypair> => {
     if (IS_BANKRUN_ENABLED) {
-        return Promise.resolve(createAccount(context));
+        return createAccount(context, LAMPORTS_INIT_BALANCE);
     }
-    const wallet = new Keypair()
+
+    const wallet = new Keypair();
     const tx = await program.provider.connection.requestAirdrop(wallet.publicKey, LAMPORTS_INIT_BALANCE);
     await confirmTransaction(program, tx);
-    return wallet
+
+    return wallet;
 }
+
 
 /**
  * Create User PDA
@@ -72,12 +75,13 @@ export const createUser = async (userData: User, wallet: Keypair): Promise<Publi
     await confirmTransaction(program, createUserTx);
 
     // Create user Wallet's ATA
-    await newAssociatedTokenAccount(wallet);
+    //TODO SHOULD BE REMOVED
+    await getOrCreateATA(wallet, wallet.publicKey);
 
     return userPdaPublicKey;
 }
 
-export const getProjectPdaKey = (userPdaKey: PublicKey, userProjectCounter: BN) => {
+export const getProjectPdaKey = (userPdaKey: PublicKey, userProjectCounter: number) => {
     // Seeds building
     const seeds = [
         Buffer.from("project"),
@@ -119,15 +123,14 @@ export const createProject = async (
         program.programId
     );
 
-    const userWalletAtaPubkey: PublicKey = getAssociatedTokenAddressSync(MINT_ADDRESS, wallet.publicKey, false);
-    const projectAtaKey = await newPdaAssociatedTokenAccount(wallet, projectPdaKey);
-
+    const userWalletAtaPubkey: PublicKey = await getOrCreateATA(wallet, wallet.publicKey);
+    const projectAtaKey: PublicKey = await getOrCreateATA(wallet, projectPdaKey);
     // Call the createProject method
     const createTx = await program.methods
         .createProject(
             projectData.metadataUri,
             projectData.goalAmount,
-            new BN(Math.floor(projectData.endTime / 1000)),
+            new BN(Math.floor(Number(projectData.endTime) / 1000)),
             projectData.safetyDeposit,
         )
         .accountsPartial({
@@ -278,7 +281,7 @@ export const createUnlockRequest = async (
     userPubkey: PublicKey,
     wallet: Keypair,
     unlockRequestsCounter: number,
-    amountRequested: number
+    amountRequested: BN
 ): Promise<PublicKey> => {
     const [unlockRequestsPubkey] = PublicKey.findProgramAddressSync(
         [
@@ -308,7 +311,7 @@ export const createUnlockRequest = async (
 
     const createTx = await program.methods
         .createUnlockRequest(
-            new BN(amountRequested)
+            amountRequested
         )
         .accountsPartial({
             user: userPubkey,
@@ -367,7 +370,7 @@ export const createTransaction = async (
     contributionPubkey: PublicKey,
     userPubkey: PublicKey,
     sellerWallet: Keypair,
-    sellingPrice: number
+    sellingPrice: BN
 ): Promise<PublicKey> => {
 
     const [saleTransactionPubkey] = PublicKey.findProgramAddressSync(
@@ -388,7 +391,7 @@ export const createTransaction = async (
 
     const createTx = await program.methods
         .createTransaction(
-            new BN(sellingPrice)
+            sellingPrice
         )
         .accountsPartial({
             projectSaleTransactions: projectSaleTransactionsPdaKey,
