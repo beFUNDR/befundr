@@ -1,11 +1,14 @@
 {
   "name": "@befundr/anchor",
   "version": "0.0.1",
-  "dependencies": {},
   "main": "./index.cjs",
   "module": "./index.js",
   "private": true,
+  "overrides": {
+    "@solana/web3.js": "^1.95.3"
+  },
   "devDependencies": {
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "spl-token-bankrun": "^0.2.6"
   }
 }
