@@ -15,10 +15,8 @@ beforeAll(async () => {
     } else {
         provider = getProvider();
     }
-    program = new Program<Befundr>(
-        BefundrIDL as Befundr,
-        provider,
-    );
+    // @ts-ignore
+    program = new Program<Befundr>(BefundrIDL as Befundr, provider);
     await initMint();
 });
 

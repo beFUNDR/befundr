@@ -55,7 +55,7 @@ type Contribution = {
   initialOwner: PublicKey;
   currentOwner: PublicKey;
   amount: number;
-  rewardId: number;
+  reward: PublicKey;
   creationTimestamp: number;
   status: ContributionStatus;
   project: PublicKey;
