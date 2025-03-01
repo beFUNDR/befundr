@@ -1,6 +1,5 @@
 /* eslint-disable */
 import { readFileSync } from 'fs';
-require('dotenv').config({ path: '.env.test' });
 
 // Reading the SWC compilation config and remove the "exclude"
 // for the test files to be compiled by SWC

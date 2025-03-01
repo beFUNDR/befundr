@@ -9,7 +9,6 @@
     "@solana/web3.js": "^1.95.3"
   },
   "devDependencies": {
-    "dotenv": "^16.4.5",
     "spl-token-bankrun": "^0.2.6"
   }
 }

@@ -4,13 +4,13 @@ import { completeTransaction, createContribution, createProject, createReward, c
 import { userData1, userData2 } from "../user/user_dataset";
 import { projectData1 } from "../project/project_dataset";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { convertAmountToDecimals, getAtaBalance, getOrCreateATA, INITIAL_USER_ATA_BALANCE, initMint, mintAmountTo } from "../utils/tokenUtils";
+import { convertAmountToDecimals, getAtaBalance, getOrCreateATA, INITIAL_USER_ATA_BALANCE, mintAmountTo, MINT_ADDRESS } from "../utils/tokenUtils";
 import { BN } from "@coral-xyz/anchor";
 import { reward1 } from '../reward/reward_dataset';
 import { getAccountNotFoundErrorRegex } from '../utils/errorUtils';
 
 describe('complete_transaction', () => {
-    let creatorWallet: Keypair, sellerWallet: Keypair, buyerWallet: Keypair, creatorUserPdaKey: PublicKey, sellerUserPdaKey: PublicKey, buyerUserPdaKey: PublicKey, creatorWalletAta: PublicKey, sellerWalletAta: PublicKey, buyerWalletAta: PublicKey, MINT_ADDRESS: PublicKey;
+    let creatorWallet: Keypair, sellerWallet: Keypair, buyerWallet: Keypair, creatorUserPdaKey: PublicKey, sellerUserPdaKey: PublicKey, buyerUserPdaKey: PublicKey, creatorWalletAta: PublicKey, sellerWalletAta: PublicKey, buyerWalletAta: PublicKey;
 
     beforeEach(async () => {
         creatorWallet = await createUserWalletWithSol();
@@ -19,7 +19,6 @@ describe('complete_transaction', () => {
         sellerUserPdaKey = await createUser(userData2, sellerWallet);
         buyerWallet = await createUserWalletWithSol();
         buyerUserPdaKey = await createUser(userData3, buyerWallet);
-        ({ MINT_ADDRESS } = await initMint());
         creatorWalletAta = await getOrCreateATA(creatorWallet, creatorWallet.publicKey);
         sellerWalletAta = await getOrCreateATA(sellerWallet, sellerWallet.publicKey);
         buyerWalletAta = await getOrCreateATA(buyerWallet, buyerWallet.publicKey);
