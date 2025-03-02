@@ -1,0 +1,37 @@
+name: Anchor Unit Tests
+on:
+  push:
+  pull_request:
+env:
+  CARGO_TERM_COLOR: always
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: backpackapp/build:v0.30.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate new keygen
+        run: solana-keygen new --no-bip39-passphrase
+
+      - name: Set solana target cluster to local
+        run: solana config set --url http:localhost:8899
+
+      - name: Check solana config
+        run: solana config get
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install anchor dependencies
+        run: cd ./anchor && npm ci
+
+      - name: Run tests with Bankrun
+        run: npm run anchor-bankrun-test
+
+      - name: Clean nx cache
+        run: npx nx reset --only-cache
+
+      - name: Run tests with Solana Local Validator
+        run: npm run anchor-test
