@@ -1,7 +1,6 @@
 name: Anchor Unit Tests
 on:
   push:
-  pull_request:
 env:
   CARGO_TERM_COLOR: always
 jobs:
@@ -11,6 +10,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: List rustup toolchains
+        run: rustup toolchain list
+
+      - name: Set default toolchain
+        run: rustup default stable
 
       - name: Generate new keygen
         run: solana-keygen new --no-bip39-passphrase
