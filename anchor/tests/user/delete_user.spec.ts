@@ -1,11 +1,11 @@
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { userData1, userData2, userData3 } from './user_dataset';
+import { userData1, userData2 } from './user_dataset';
 import { projectData1 } from "../project/project_dataset";
-import { confirmTransaction, createUser, createUserWalletWithSol, createProject } from '../utils';
-import { program, systemProgram, anchor, PROGRAM_CONNECTION } from '../config';
+import { confirmTransaction, createUser, createUserWalletWithSol, createProject } from '../utils/testUtils';
+import { program, systemProgram } from '../config';
 import * as bs58 from "bs58";
-import { INITIAL_USER_ATA_BALANCE, InitMint, MintAmountTo } from "../token/token_config";
-import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import { getOrCreateATA, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS, mintAmountTo } from "../utils/tokenUtils";
+import { getAccountNotFoundErrorRegex } from "../utils/errorUtils";
 
 // Generate admin keypair from secret key 
 // FOR LOCAL TESTING PURPOSES ONLY
@@ -47,23 +47,22 @@ describe('deleteUser', () => {
         const userWallet = await createUserWalletWithSol();
         const userPda = await createUser(userData1, userWallet);
         const fetchUserAccount = await program.account.user.fetch(userPda);
-
+        const expectedErrorRegex = getAccountNotFoundErrorRegex(userPda.toString());
         // Get the wallet info before deletion
-        const fetchOwnerWalletBf = await anchor.getProvider().connection.getAccountInfo(fetchUserAccount.owner);
+        const fetchOwnerWalletBf = await program.provider.connection.getAccountInfo(fetchUserAccount.owner);
 
         // Deletion should success
         await deleteUser(userPda, fetchUserAccount.owner, adminKeypair);
 
         // Get the wallet info after deletion
-        const fetchOwnerWalletAf = await anchor.getProvider().connection.getAccountInfo(fetchUserAccount.owner);
+        const fetchOwnerWalletAf = await program.provider.connection.getAccountInfo(fetchUserAccount.owner);
 
         // Check if lamports have been refund to owner
         expect(fetchOwnerWalletAf?.lamports).toBeGreaterThan(fetchOwnerWalletBf?.lamports ?? 0);
 
-        const expectedError = /^Account does not exist or has no data.*/;
         await expect(program.account.user.fetch(userPda))
             .rejects
-            .toThrow(expectedError);
+            .toThrow(expectedErrorRegex);
     });
 
     it("should failed to delete the user by admin as the sol destination wallet is not the user account owner", async () => {
@@ -115,14 +114,8 @@ describe('deleteUser', () => {
         const expectedError = /^AnchorError thrown.*.User has associated projects or contributions/;
 
         const userWallet = await createUserWalletWithSol();
-        const { MINT_ADDRESS } = await InitMint();
-        const userWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            userWallet,
-            MINT_ADDRESS,
-            userWallet.publicKey
-        )
-        await MintAmountTo(userWallet, userWalletAta.address, INITIAL_USER_ATA_BALANCE);
+        const userWalletAta = await getOrCreateATA(userWallet, userWallet.publicKey)
+        await mintAmountTo(userWallet, userWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
         const userPda = await createUser(userData1, userWallet);
         // Fetching to confirm user account exists
         const fetchUserAccount = await program.account.user.fetch(userPda);

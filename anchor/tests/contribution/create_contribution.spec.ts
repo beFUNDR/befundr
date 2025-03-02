@@ -1,48 +1,35 @@
-import { program, PROGRAM_CONNECTION } from "../config";
-import { createContribution, createProject, createReward, createUser, createUserWalletWithSol } from "../utils";
+import { program } from "../config";
+import { createContribution, createProject, createReward, createUser, createUserWalletWithSol } from "../utils/testUtils";
 import { projectData1 } from "../project/project_dataset";
 import { userData1, userData2, userData3 } from "../user/user_dataset";
 import { BN } from "@coral-xyz/anchor";
 import { Enum, Keypair, PublicKey } from "@solana/web3.js";
-import { getOrCreateAssociatedTokenAccount, getAssociatedTokenAddress, getAccount, Account } from "@solana/spl-token"
+import { getAssociatedTokenAddress } from "@solana/spl-token"
 import { ContributionStatus } from "./contribution_status";
 import {
-    InitMint,
     MINT_ADDRESS,
-    MintAmountTo,
+    mintAmountTo,
     convertAmountToDecimals,
     INITIAL_USER_ATA_BALANCE,
     getAtaBalance,
-} from "../token/token_config";
+    getOrCreateATA
+} from "../utils/tokenUtils";
 import { reward1 } from "../reward/reward_dataset";
 
 describe('createContribution', () => {
 
-    let creatorWallet: Keypair, creatorWalletAta: Account, creatorUserPdaKey: PublicKey,
-        userWallet: Keypair, userWalletAta: Account, userPdaKey: PublicKey;
+    let creatorWallet: Keypair, creatorWalletAta: PublicKey, creatorUserPdaKey: PublicKey,
+        userWallet: Keypair, userWalletAta: PublicKey, userPdaKey: PublicKey;
 
     beforeEach(async () => {
-        await InitMint();
-
         creatorWallet = await createUserWalletWithSol();
         creatorUserPdaKey = await createUser(userData1, creatorWallet);
-        creatorWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            creatorWallet,
-            MINT_ADDRESS,
-            creatorWallet.publicKey
-        );
-        await MintAmountTo(creatorWallet, creatorWalletAta.address, INITIAL_USER_ATA_BALANCE);
-
+        creatorWalletAta = await getOrCreateATA(creatorWallet, creatorWallet.publicKey);
+        await mintAmountTo(creatorWallet, creatorWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
         userWallet = await createUserWalletWithSol();
         userPdaKey = await createUser(userData2, userWallet);
-        userWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            userWallet,
-            MINT_ADDRESS,
-            userWallet.publicKey
-        );
-        await MintAmountTo(userWallet, userWalletAta.address, INITIAL_USER_ATA_BALANCE);
+        userWalletAta = await getOrCreateATA(userWallet, userWallet.publicKey);
+        await mintAmountTo(userWallet, userWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
     });
 
     it("should successfully create a contribution with reward 1", async () => {
@@ -75,19 +62,13 @@ describe('createContribution', () => {
             projectPdaKey
         );
         // get updated user wallet ata balance
-        const userWalletAtaAccount = await getAccount(
-            PROGRAM_CONNECTION,
-            userWalletAta.address
-        );
+        const userWalletAtaAccount = await getAtaBalance(userWalletAta);
         // get update project ata balance
-        const projectAtaAccount = await getAccount(
-            PROGRAM_CONNECTION,
-            projectAtaKey
-        );
+        const projectAtaAccount = await getAtaBalance(projectAtaKey);
 
-        expect(new BN(userWalletAtaAccount.amount).toString())
-            .toEqual((INITIAL_USER_ATA_BALANCE - convertAmountToDecimals(INITIAL_PAID_AMOUNT)).toString());
-        expect(new BN(projectAtaAccount.amount).toString())
+        expect(userWalletAtaAccount.toString())
+            .toEqual((INITIAL_USER_ATA_BALANCE.sub(convertAmountToDecimals(INITIAL_PAID_AMOUNT))).toString());
+        expect(projectAtaAccount.toString())
             .toEqual(projectAtaBalanceBefore.add(convertAmountToDecimals(INITIAL_PAID_AMOUNT)).toString());
 
         expect(contributionPda.initialOwner).toEqual(userPdaKey);
@@ -108,11 +89,11 @@ describe('createContribution', () => {
     },
         20000);
 
-    it.skip('should fail if the project is not in fundraising state', async () => {
+    it('should fail if the project is not in fundraising state', async () => {
         // no project state updates instruction exist at this time
     });
 
-    it.skip('should fail if the project is not in fundraising period', async () => {
+    it('should fail if the project is not in fundraising period', async () => {
         // unable to create a past project
     });
 
@@ -126,13 +107,8 @@ describe('createContribution', () => {
 
         // Create a different wallet to simulate the wrong signer
         const wrongWallet = await createUserWalletWithSol();
-        const wrongWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            wrongWallet,
-            MINT_ADDRESS,
-            wrongWallet.publicKey
-        );
-        await MintAmountTo(wrongWallet, wrongWalletAta.address, INITIAL_USER_ATA_BALANCE);
+        const wrongWalletAta = await getOrCreateATA(wrongWallet, wrongWallet.publicKey, MINT_ADDRESS,);
+        await mintAmountTo(wrongWallet, wrongWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
 
         const expectedErrorMessage = new RegExp('Signer must be the user.');
 
@@ -207,7 +183,7 @@ describe('createContribution', () => {
 
         // Prepare Project context
         const { projectPdaKey, projectAtaKey } = await createProject(projectData1, 0, creatorUserPdaKey, creatorWallet);
-        const rewardPdaKey = await createReward({ ...reward1, maxSupply: new BN(1) }, projectPdaKey, creatorUserPdaKey, creatorWallet);
+        const rewardPdaKey = await createReward({ ...reward1, maxSupply: 1 }, projectPdaKey, creatorUserPdaKey, creatorWallet);
         let projectPda = await program.account.project.fetch(projectPdaKey);
         let projectContributionCounter = projectPda.contributionCounter;
 
@@ -227,7 +203,7 @@ describe('createContribution', () => {
         const anotherWallet = await createUserWalletWithSol();
         const anotherUserPda = await createUser(userData3, anotherWallet);
         const anotherWalletAta = await getAssociatedTokenAddress(MINT_ADDRESS, anotherWallet.publicKey);
-        await MintAmountTo(anotherWallet, anotherWalletAta, INITIAL_USER_ATA_BALANCE);
+        await mintAmountTo(anotherWallet, anotherWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
 
         projectPda = await program.account.project.fetch(projectPdaKey);
         projectContributionCounter = projectPda.contributionCounter;
@@ -245,7 +221,6 @@ describe('createContribution', () => {
     });
 
     it('should update the User and Project contributions list', async () => {
-
         const INITIAL_PAID_AMOUNT = 100;
         const rewardCounter = 0;
 

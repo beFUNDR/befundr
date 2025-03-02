@@ -27,4 +27,5 @@ export default {
   moduleFileExtensions: ['ts', 'js', 'html'],
   testEnvironment: '',
   coverageDirectory: '../coverage/anchor',
+  setupFilesAfterEnv: ['./jest.setup.js'],
 };

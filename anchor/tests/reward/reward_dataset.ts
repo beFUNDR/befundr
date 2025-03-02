@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import { convertAmountToDecimals } from "../token/token_config";
+import { convertAmountToDecimals } from "../utils/tokenUtils";
 import { Reward } from "./reward_type";
 
 export const reward1: Reward = {

@@ -17,7 +17,7 @@ interface AddContributionArgs {
   userWalletPubkey: PublicKey;
   projectContributionCounter: number;
   amount: number;
-  rewardId: number | null;
+  reward?: PublicKey;
 }
 
 export function useBefundrProgramContribution() {
@@ -122,7 +122,7 @@ export function useBefundrProgramContribution() {
       userWalletPubkey,
       projectContributionCounter,
       amount,
-      rewardId,
+      reward
     }) => {
       const [contributionPdaPublicKey] = await PublicKey.findProgramAddressSync(
         [
@@ -151,10 +151,7 @@ export function useBefundrProgramContribution() {
 
       // Call the addContribution method
       const tx = await program.methods
-        .addContribution(
-          new BN(amount),
-          rewardId !== null ? new BN(rewardId) : null
-        )
+        .addContribution(new BN(amount))
         .accountsPartial({
           project: projectPubkey,
           projectContributions: projectContributionsPubkey,
@@ -164,6 +161,7 @@ export function useBefundrProgramContribution() {
           fromAta: fromAta?.address,
           toAta: toAta?.address,
           tokenProgram: TOKEN_PROGRAM_ID,
+          reward
         })
         .rpc(); // Launch the transaction
 
