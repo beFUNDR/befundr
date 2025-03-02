@@ -33,6 +33,9 @@ jobs:
       - name: Install anchor dependencies
         run: cd ./anchor && npm ci
 
+      - name: Build Anchor programs
+        run: cd ./anchor && anchor build
+
       - name: Run tests with Bankrun
         run: npm run anchor-bankrun-test
 
