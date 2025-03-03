@@ -3,7 +3,7 @@ on:
   push:
 env:
   CARGO_TERM_COLOR: always
-  TEST_TIMEOUT: 15000 #Required as solana local validator takes time
+  TEST_TIMEOUT: 20000 #Required as solana local validator takes time
 jobs:
   build:
     runs-on: ubuntu-latest
