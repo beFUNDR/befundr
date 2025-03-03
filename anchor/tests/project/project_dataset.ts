@@ -2,7 +2,7 @@ import { Project } from "./project_type";
 import { BN } from "@coral-xyz/anchor";
 import { ProjectStatus } from "./project_status";
 import { ProjectCategory } from "./category_type";
-import { convertAmountToDecimals } from "../token/token_config";
+import { convertAmountToDecimals } from "../utils/tokenUtils";
 
 export const ONE_DAY_MILLISECONDS = 86_400_000;
 const now = Date.now();

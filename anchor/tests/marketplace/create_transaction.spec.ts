@@ -1,38 +1,25 @@
-import { program, PROGRAM_CONNECTION } from "../config";
-import { createContribution, createProject, createReward, createTransaction, createUser, createUserWalletWithSol } from "../utils";
+import { program } from "../config";
+import { createContribution, createProject, createReward, createTransaction, createUser, createUserWalletWithSol } from "../utils/testUtils";
 import { userData1, userData2 } from "../user/user_dataset";
 
 import { projectData1 } from "../project/project_dataset";
-import { convertAmountToDecimals, INITIAL_USER_ATA_BALANCE, InitMint, MintAmountTo } from "../token/token_config";
-import { Account, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import { convertAmountToDecimals, getOrCreateATA, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS, mintAmountTo } from "../utils/tokenUtils";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import { reward1 } from "../reward/reward_dataset";
 
 describe('create_transaction', () => {
-    let creatorWallet: Keypair, sellerWallet: Keypair, creatorUserPdaKey: PublicKey, sellerPdaKey: PublicKey, creatorWalletAta: Account, sellerWalletAta: Account, MINT_ADDR: PublicKey;
+    let creatorWallet: Keypair, sellerWallet: Keypair, creatorUserPdaKey: PublicKey, sellerPdaKey: PublicKey, creatorWalletAta: PublicKey, sellerWalletAta: PublicKey;
 
     beforeEach(async () => {
         creatorWallet = await createUserWalletWithSol();
         creatorUserPdaKey = await createUser(userData1, creatorWallet);
         sellerWallet = await createUserWalletWithSol();
         sellerPdaKey = await createUser(userData2, sellerWallet);
-        const { MINT_ADDRESS } = await InitMint();
-        MINT_ADDR = MINT_ADDRESS;
-        creatorWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            creatorWallet,
-            MINT_ADDRESS,
-            creatorWallet.publicKey
-        );
-        sellerWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            sellerWallet,
-            MINT_ADDRESS,
-            sellerWallet.publicKey
-        );
-        await MintAmountTo(creatorWallet, creatorWalletAta.address, INITIAL_USER_ATA_BALANCE);
-        await MintAmountTo(creatorWallet, sellerWalletAta.address, INITIAL_USER_ATA_BALANCE);
+        creatorWalletAta = await getOrCreateATA(creatorWallet, creatorWallet.publicKey);
+        sellerWalletAta = await getOrCreateATA(sellerWallet, sellerWallet.publicKey);
+        await mintAmountTo(creatorWallet, creatorWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
+        await mintAmountTo(creatorWallet, sellerWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
     }, 10000);
 
     it("should successfully create a sell transaction", async () => {
@@ -121,7 +108,7 @@ describe('create_transaction', () => {
             contributionAmount,
             new BN(0)
         );
-        const sellingPrice = 0;
+        const sellingPrice = new BN(0);
         const expectedError = /Error Code: IncorrectSellingPrice\. Error Number: .*\. Error Message: Incorrect selling price.*/;
 
         await expect(createTransaction(projectPdaKey, contributionPdaKey, sellerPdaKey, sellerWallet, sellingPrice)).rejects.toThrow(expectedError);

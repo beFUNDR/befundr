@@ -1,16 +1,16 @@
 import { userData3 } from './../user/user_dataset';
-import { anchor, program, PROGRAM_CONNECTION } from "../config";
-import { completeTransaction, createContribution, createProject, createReward, createTransaction, createUser, createUserWalletWithSol } from "../utils";
+import { program } from "../config";
+import { completeTransaction, createContribution, createProject, createReward, createTransaction, createUser, createUserWalletWithSol } from "../utils/testUtils";
 import { userData1, userData2 } from "../user/user_dataset";
 import { projectData1 } from "../project/project_dataset";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { Account, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
-import { convertAmountToDecimals, getAtaBalance, INITIAL_USER_ATA_BALANCE, InitMint, MintAmountTo } from "../token/token_config";
+import { convertAmountToDecimals, getAtaBalance, getOrCreateATA, INITIAL_USER_ATA_BALANCE, mintAmountTo, MINT_ADDRESS } from "../utils/tokenUtils";
 import { BN } from "@coral-xyz/anchor";
 import { reward1 } from '../reward/reward_dataset';
+import { getAccountNotFoundErrorRegex } from '../utils/errorUtils';
 
 describe('complete_transaction', () => {
-    let creatorWallet: Keypair, sellerWallet: Keypair, buyerWallet: Keypair, creatorUserPdaKey: PublicKey, sellerUserPdaKey: PublicKey, buyerUserPdaKey: PublicKey, creatorWalletAta: Account, sellerWalletAta: Account, buyerWalletAta: Account, MINT_ADDRESS: PublicKey;
+    let creatorWallet: Keypair, sellerWallet: Keypair, buyerWallet: Keypair, creatorUserPdaKey: PublicKey, sellerUserPdaKey: PublicKey, buyerUserPdaKey: PublicKey, creatorWalletAta: PublicKey, sellerWalletAta: PublicKey, buyerWalletAta: PublicKey;
 
     beforeEach(async () => {
         creatorWallet = await createUserWalletWithSol();
@@ -19,28 +19,12 @@ describe('complete_transaction', () => {
         sellerUserPdaKey = await createUser(userData2, sellerWallet);
         buyerWallet = await createUserWalletWithSol();
         buyerUserPdaKey = await createUser(userData3, buyerWallet);
-        ({ MINT_ADDRESS } = await InitMint());
-        creatorWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            creatorWallet,
-            MINT_ADDRESS,
-            creatorWallet.publicKey
-        );
-        sellerWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            sellerWallet,
-            MINT_ADDRESS,
-            sellerWallet.publicKey
-        );
-        buyerWalletAta = await getOrCreateAssociatedTokenAccount(
-            PROGRAM_CONNECTION,
-            buyerWallet,
-            MINT_ADDRESS,
-            buyerWallet.publicKey
-        );
-        await MintAmountTo(creatorWallet, creatorWalletAta.address, INITIAL_USER_ATA_BALANCE);
-        await MintAmountTo(sellerWallet, sellerWalletAta.address, INITIAL_USER_ATA_BALANCE);
-        await MintAmountTo(buyerWallet, buyerWalletAta.address, INITIAL_USER_ATA_BALANCE);
+        creatorWalletAta = await getOrCreateATA(creatorWallet, creatorWallet.publicKey);
+        sellerWalletAta = await getOrCreateATA(sellerWallet, sellerWallet.publicKey);
+        buyerWalletAta = await getOrCreateATA(buyerWallet, buyerWallet.publicKey);
+        await mintAmountTo(creatorWallet, creatorWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
+        await mintAmountTo(sellerWallet, sellerWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
+        await mintAmountTo(buyerWallet, buyerWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
     }, 10000);
 
     it("should successfully complete a buy transaction", async () => {
@@ -59,7 +43,7 @@ describe('complete_transaction', () => {
         );
         const sellingPrice = convertAmountToDecimals(200);
         const saleTransactionPdaKey = await createTransaction(projectPdaKey, contributionPdaKey, sellerUserPdaKey, sellerWallet, sellingPrice);
-        const [sellerUserContributionsPdaKey] = anchor.web3.PublicKey.findProgramAddressSync(
+        const [sellerUserContributionsPdaKey] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("user_contributions"),
                 sellerUserPdaKey.toBuffer(),
@@ -67,18 +51,17 @@ describe('complete_transaction', () => {
             program.programId
         );
 
-
-        const expectedErrorRegex = new RegExp(`Account does not exist or has no data (?<address>${saleTransactionPdaKey.toString()})`);
+        const expectedErrorRegex = getAccountNotFoundErrorRegex(saleTransactionPdaKey.toString());
         const saleTransactionPdaBefore = await program.account.saleTransaction.fetch(saleTransactionPdaKey);
         const contributionPdaBefore = await program.account.contribution.fetch(contributionPdaKey);
         const sellerUserContributionsPdaBefore = await program.account.userContributions.fetch(sellerUserContributionsPdaKey);
-        const buyerAtaBalanceBefore = await getAtaBalance(buyerWalletAta.address);
-        const sellerAtaBalanceBefore = await getAtaBalance(sellerWalletAta.address);
+        const buyerAtaBalanceBefore = await getAtaBalance(buyerWalletAta);
+        const sellerAtaBalanceBefore = await getAtaBalance(sellerWalletAta);
 
         await completeTransaction(projectPdaKey, contributionPdaKey, sellerUserPdaKey, buyerUserPdaKey, buyerWallet, sellerWallet.publicKey);
 
 
-        const [buyerUserContributionsPdaKey] = anchor.web3.PublicKey.findProgramAddressSync(
+        const [buyerUserContributionsPdaKey] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("user_contributions"),
                 buyerUserPdaKey.toBuffer(),
@@ -86,8 +69,8 @@ describe('complete_transaction', () => {
             program.programId
         );
         const contributionPdaAfter = await program.account.contribution.fetch(contributionPdaKey);
-        const buyerAtaBalanceAfter = await getAtaBalance(buyerWalletAta.address);
-        const sellerAtaBalanceAfter = await getAtaBalance(sellerWalletAta.address);
+        const buyerAtaBalanceAfter = await getAtaBalance(buyerWalletAta);
+        const sellerAtaBalanceAfter = await getAtaBalance(sellerWalletAta);
         const buyerUserContributionsPdaAfter = await program.account.userContributions.fetch(buyerUserContributionsPdaKey);
 
         await expect(program.account.saleTransaction.fetch(saleTransactionPdaKey)).rejects.toThrow(expectedErrorRegex);

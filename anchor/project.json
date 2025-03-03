@@ -16,6 +16,14 @@
         "parallel": false
       }
     },
+    "bankrun": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "anchor",
+        "commands": ["BANKRUN_ENABLED=true anchor test"],
+        "parallel": false
+      }
+    },
     "anchor": {
       "executor": "nx:run-commands",
       "options": {
