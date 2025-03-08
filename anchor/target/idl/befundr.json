@@ -912,6 +912,35 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "start_project",
+      "discriminator": [
+        117,
+        24,
+        51,
+        74,
+        50,
+        141,
+        55,
+        94
+      ],
+      "accounts": [
+        {
+          "name": "project",
+          "writable": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -1075,8 +1104,8 @@
   "errors": [
     {
       "code": 6000,
-      "name": "TransferFailed",
-      "msg": "Funds transfer failed."
+      "name": "ContributionNotFound",
+      "msg": "Contribution not found"
     }
   ],
   "types": [
@@ -1219,6 +1248,10 @@
           },
           {
             "name": "created_time",
+            "type": "i64"
+          },
+          {
+            "name": "fundraising_end_time",
             "type": "i64"
           },
           {
