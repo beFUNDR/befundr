@@ -1,5 +1,5 @@
 import { program } from "../config";
-import { createContribution, createProject, createReward, createUnlockRequest, createUser, createUserWalletWithSol } from "../utils/testUtils";
+import { createContribution, createProject, createReward, createUnlockRequest, createUser, createUserWalletWithSol, startProject } from "../utils/testUtils";
 import { projectData2 } from "../project/project_dataset";
 import { userData1, userData2 } from "../user/user_dataset";
 import { UnlockStatus } from "./unlock_status";
@@ -8,8 +8,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import { reward1 } from "../reward/reward_dataset";
 
-//TODO rework tests once the project status moves from fundraising to realizing
-describe.skip('createUnlockRequest', () => {
+describe('createUnlockRequest', () => {
     let creatorWallet: Keypair, contributorWallet: Keypair, creatorUserPdaKey: PublicKey, contributorPdaKey: PublicKey, creatorWalletAta: PublicKey, contributorWalletAta: PublicKey;
 
     beforeEach(async () => {
@@ -21,7 +20,8 @@ describe.skip('createUnlockRequest', () => {
         contributorWalletAta = await getOrCreateATA(contributorWallet, contributorWallet.publicKey);
         await mintAmountTo(creatorWallet, creatorWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
         await mintAmountTo(creatorWallet, contributorWalletAta, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS);
-    }, 10000);
+    });
+
     it("should successfully create an unlock request", async () => {
         const { projectPdaKey } = await createProject(projectData2, 0, creatorUserPdaKey, creatorWallet)
         await createReward(reward1, projectPdaKey, creatorUserPdaKey, creatorWallet);
@@ -39,6 +39,8 @@ describe.skip('createUnlockRequest', () => {
             contributionAmount,
             new BN(0)
         );
+
+        await startProject(projectPdaKey, creatorWallet)
         const [unlockRequestsPubkey] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("project_unlock_requests"),
@@ -54,11 +56,8 @@ describe.skip('createUnlockRequest', () => {
         const unlockRequest = await program.account.unlockRequest.fetch(unlockRequestPdaKey);
 
         expect(unlockRequest.project).toEqual(projectPdaKey);
-        expect(unlockRequest.amountRequested.toNumber()).toEqual(expectedUnlockAmount);
+        expect(unlockRequest.amountRequested.eq(expectedUnlockAmount)).toBe(true);
         expect(unlockRequest.votesAgainst.toNumber()).toEqual(0);
-        //expect(unlockRequest.createdTime.toNumber()).toEqual(expectedUnlockAmount);
-        //expect(unlockRequest.endTime.toNumber()).toEqual(expectedUnlockAmount);
-        //expect(unlockRequest.unlockTime.toNumber()).toEqual(expectedUnlockAmount);
         expect(new UnlockStatus(unlockRequest.status).enum).toEqual(UnlockStatus.Approved.enum);
 
         const unlockRequestsAfter = await program.account.unlockRequests.fetch(unlockRequestsPubkey);
@@ -83,6 +82,8 @@ describe.skip('createUnlockRequest', () => {
             contributionAmount,
             new BN(0)
         );
+
+        await startProject(projectPdaKey, creatorWallet);
 
         const [unlockRequestsPubkey] = PublicKey.findProgramAddressSync(
             [
