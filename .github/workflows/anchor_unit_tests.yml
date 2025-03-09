@@ -39,8 +39,8 @@ jobs:
       - name: Run tests with Bankrun
         run: npm run anchor-bankrun-test
 
-      - name: Clean nx cache
-        run: npx nx reset --only-cache
+      #- name: Clean nx cache
+      #  run: npx nx reset --only-cache
 
-      - name: Run tests with Solana Local Validator
-        run: npm run anchor-test
+      #- name: Run tests with Solana Local Validator
+      #  run: npm run anchor-test
