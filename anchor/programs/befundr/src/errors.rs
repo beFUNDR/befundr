@@ -127,3 +127,17 @@ pub enum CommonError {
     #[msg("URI is too long (max 256 characters).")]
     UriTooLong,
 }
+
+#[error_code]
+pub enum OwnershipError {
+    #[msg("Invalid owner")]
+    WrongOwner,
+}
+
+#[error_code]
+pub enum StartProjectError {
+    #[msg("The project is not in fundraising status")]
+    WrongStatus,
+    #[msg("The raised amount is lower than the goal amount")]
+    InsufficientRaisedAmount,
+}

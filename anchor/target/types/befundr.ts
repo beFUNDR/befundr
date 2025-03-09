@@ -918,6 +918,35 @@ export type Befundr = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "startProject",
+      "discriminator": [
+        117,
+        24,
+        51,
+        74,
+        50,
+        141,
+        55,
+        94
+      ],
+      "accounts": [
+        {
+          "name": "project",
+          "writable": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -1081,8 +1110,8 @@ export type Befundr = {
   "errors": [
     {
       "code": 6000,
-      "name": "transferFailed",
-      "msg": "Funds transfer failed."
+      "name": "contributionNotFound",
+      "msg": "Contribution not found"
     }
   ],
   "types": [
@@ -1225,6 +1254,10 @@ export type Befundr = {
           },
           {
             "name": "createdTime",
+            "type": "i64"
+          },
+          {
+            "name": "fundraisingEndTime",
             "type": "i64"
           },
           {

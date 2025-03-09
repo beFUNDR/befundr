@@ -485,3 +485,19 @@ export const completeTransaction = async (
 
     return saleTransactionPubkey;
 }
+
+export const startProject = async (
+    projectPubkey: PublicKey,
+    wallet: Keypair,
+): Promise<void> => {
+    const claimTx = await program.methods
+        .startProject()
+        .accountsPartial({
+            project: projectPubkey,
+            signer: wallet.publicKey
+        })
+        .signers([wallet])
+        .rpc();
+
+    await confirmTransaction(program, claimTx);
+}

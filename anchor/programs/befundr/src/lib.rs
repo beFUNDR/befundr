@@ -78,6 +78,10 @@ pub mod befundr {
     ) -> Result<()> {
         instructions::create_reward(ctx, metadata_uri, max_supply, price)
     }
+
+    pub fn start_project(ctx: Context<StartProject>) -> Result<()> {
+        instructions::start_project(ctx)
+    }
 }
 
 #[derive(Accounts)]

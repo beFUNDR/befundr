@@ -1,5 +1,5 @@
 import { program } from "../config";
-import { claimUnlockRequest, createContribution, createProject, createReward, createUnlockRequest, createUser, createUserWalletWithSol } from "../utils/testUtils";
+import { claimUnlockRequest, createContribution, createProject, createReward, createUnlockRequest, createUser, createUserWalletWithSol, startProject } from "../utils/testUtils";
 import { projectData2 } from "../project/project_dataset";
 import { userData1, userData2 } from "../user/user_dataset";
 import { convertAmountToDecimals, getAtaBalance, getOrCreateATA, INITIAL_USER_ATA_BALANCE, MINT_ADDRESS, mintAmountTo } from "../utils/tokenUtils";
@@ -7,7 +7,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import { reward1 } from "../reward/reward_dataset";
 
-//TODO rework tests once the project status moves from fundraising to realizing
+//TODO rework tests once the test tool allows to forward in time
 describe.skip('claimUnlockRequest', () => {
     let creatorWallet: Keypair, contributorWallet: Keypair, creatorUserPdaKey: PublicKey, contributorPdaKey: PublicKey, creatorWalletAta: PublicKey, contributorWalletAta: PublicKey;
 
@@ -38,6 +38,7 @@ describe.skip('claimUnlockRequest', () => {
             new BN(0)
         );
 
+        await startProject(projectPdaKey, creatorWallet)
 
         const [unlockRequestsPubkey] = PublicKey.findProgramAddressSync(
             [
